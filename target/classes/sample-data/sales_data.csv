@@ -1,0 +1,25 @@
+Month,Product,Revenue,Units_Sold,Region
+Jan-2024,Widget A,12500,250,North
+Feb-2024,Widget A,13200,264,North
+Mar-2024,Widget A,14800,296,North
+Apr-2024,Widget A,11900,238,North
+May-2024,Widget A,15600,312,North
+Jun-2024,Widget A,16200,324,North
+Jan-2024,Widget B,8400,120,South
+Feb-2024,Widget B,9100,130,South
+Mar-2024,Widget B,7800,111,South
+Apr-2024,Widget B,10200,146,South
+May-2024,Widget B,11500,164,South
+Jun-2024,Widget B,12000,171,South
+Jan-2024,Gadget X,22000,440,East
+Feb-2024,Gadget X,21500,430,East
+Mar-2024,Gadget X,24000,480,East
+Apr-2024,Gadget X,25500,510,East
+May-2024,Gadget X,23000,460,East
+Jun-2024,Gadget X,27000,540,East
+Jan-2024,Gadget Y,5200,52,West
+Feb-2024,Gadget Y,4800,48,West
+Mar-2024,Gadget Y,5500,55,West
+Apr-2024,Gadget Y,6100,61,West
+May-2024,Gadget Y,5900,59,West
+Jun-2024,Gadget Y,6800,68,West
