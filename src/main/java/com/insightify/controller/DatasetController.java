@@ -1,12 +1,9 @@
 package com.insightify.controller;
 
 import com.insightify.dto.ApiResponse;
-import com.insightify.dto.ChartResponse;
 import com.insightify.dto.DatasetResponse;
-import com.insightify.dto.InsightResponse;
-import com.insightify.service.ChartService;
+import com.insightify.service.LocalAnalysisService;
 import com.insightify.service.DatasetService;
-import com.insightify.service.InsightService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -16,12 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * REST controller for dataset operations:
- * - Upload datasets
- * - List/retrieve datasets
- * - Generate charts and insights per dataset
+ * REST controller for dataset operations.
+ * Analytics endpoints use locally computed results — no external APIs.
  */
 @RestController
 @RequestMapping("/api/datasets")
@@ -30,15 +26,11 @@ public class DatasetController {
     private static final Logger log = LoggerFactory.getLogger(DatasetController.class);
 
     private final DatasetService datasetService;
-    private final ChartService chartService;
-    private final InsightService insightService;
+    private final LocalAnalysisService localAnalysisService;
 
-    public DatasetController(DatasetService datasetService,
-                             ChartService chartService,
-                             InsightService insightService) {
+    public DatasetController(DatasetService datasetService, LocalAnalysisService localAnalysisService) {
         this.datasetService = datasetService;
-        this.chartService = chartService;
-        this.insightService = insightService;
+        this.localAnalysisService = localAnalysisService;
     }
 
     /**
@@ -85,23 +77,29 @@ public class DatasetController {
 
     /**
      * GET /api/datasets/{id}/charts
-     * Auto-generate chart configurations for a dataset.
+     * Generate chart data for a dataset (locally computed).
      */
     @GetMapping("/{id}/charts")
-    public ResponseEntity<ApiResponse<List<ChartResponse>>> getCharts(@PathVariable Long id) {
-        List<ChartResponse> charts = chartService.generateCharts(id);
-        return ResponseEntity.ok(
-                ApiResponse.success("Charts generated successfully", charts));
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getCharts(@PathVariable Long id) {
+        log.info("Generating charts for dataset {}", id);
+        List<java.util.Map<String, String>> rows = datasetService.getDatasetRows(id);
+        List<java.util.Map<String, String>> columns = datasetService.getColumnMetadata(id);
+
+        List<Map<String, Object>> charts = localAnalysisService.generateCharts(rows, columns);
+        return ResponseEntity.ok(ApiResponse.success(charts));
     }
 
     /**
      * GET /api/datasets/{id}/insights
-     * Generate AI-powered insights for a dataset.
+     * Generate text insights for a dataset (locally computed).
      */
     @GetMapping("/{id}/insights")
-    public ResponseEntity<ApiResponse<InsightResponse>> getInsights(@PathVariable Long id) {
-        InsightResponse insight = insightService.generateInsights(id);
-        return ResponseEntity.ok(
-                ApiResponse.success("Insights generated successfully", insight));
+    public ResponseEntity<ApiResponse<String>> getInsights(@PathVariable Long id) {
+        log.info("Generating insights for dataset {}", id);
+        List<java.util.Map<String, String>> rows = datasetService.getDatasetRows(id);
+        List<java.util.Map<String, String>> columns = datasetService.getColumnMetadata(id);
+
+        String insights = localAnalysisService.generateInsightsText(rows, columns);
+        return ResponseEntity.ok(ApiResponse.success(insights));
     }
 }

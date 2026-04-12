@@ -1,0 +1,15 @@
+# Secrets
+.env
+
+# Build
+target/
+*.class
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.log
+
+# Maven Wrapper
+.mvn/wrapper/maven-dist/
