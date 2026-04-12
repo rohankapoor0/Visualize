@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insightify.dto.FlowchartRequest;
 import com.insightify.dto.FlowchartResponse;
-
 import com.insightify.model.Flowchart;
 import com.insightify.repository.FlowchartRepository;
 import org.slf4j.Logger;
@@ -18,6 +17,7 @@ import java.util.Optional;
 
 /**
  * Service for generating flowchart structures from datasets or queries.
+ * Uses LocalAnalysisService for data-driven flowchart generation.
  */
 @Service
 public class FlowchartService {
@@ -25,23 +25,20 @@ public class FlowchartService {
     private static final Logger log = LoggerFactory.getLogger(FlowchartService.class);
 
     private final DatasetService datasetService;
-    private final AIService aiService;
+    private final LocalAnalysisService localAnalysisService;
     private final FlowchartRepository flowchartRepository;
     private final ObjectMapper objectMapper;
 
     public FlowchartService(DatasetService datasetService,
-                            AIService aiService,
+                            LocalAnalysisService localAnalysisService,
                             FlowchartRepository flowchartRepository,
                             ObjectMapper objectMapper) {
         this.datasetService = datasetService;
-        this.aiService = aiService;
+        this.localAnalysisService = localAnalysisService;
         this.flowchartRepository = flowchartRepository;
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * Generate a flowchart from a request (datasetId and/or query).
-     */
     @Transactional
     public FlowchartResponse generateFlowchart(FlowchartRequest request) {
         Long datasetId = request.getDatasetId();
@@ -51,23 +48,21 @@ public class FlowchartService {
             throw new IllegalArgumentException("Either datasetId or query must be provided");
         }
 
-        // If no datasetId, create a generic flowchart from the query
         if (datasetId == null) {
             return createQueryFlowchart(query);
         }
 
-        // Check for existing
         Optional<Flowchart> existing = flowchartRepository.findFirstByDatasetId(datasetId);
         if (existing.isPresent() && (query == null || query.isBlank())) {
             return toResponse(existing.get());
         }
 
-        datasetService.getDatasetEntity(datasetId); // validate dataset exists
+        datasetService.getDatasetEntity(datasetId);
         List<Map<String, String>> rows = datasetService.getDatasetRows(datasetId);
         List<Map<String, String>> columns = datasetService.getColumnMetadata(datasetId);
 
-        // Generate flowchart using AI service
-        Map<String, Object> structure = aiService.generateFlowchart(rows, columns, query);
+        // Locally generated flowchart structure
+        Map<String, Object> structure = localAnalysisService.generateFlowchartStructure(rows, columns, query);
 
         Flowchart flowchart = new Flowchart();
         flowchart.setDatasetId(datasetId);
@@ -79,13 +74,10 @@ public class FlowchartService {
         }
 
         Flowchart saved = flowchartRepository.save(flowchart);
-        log.info("Generated flowchart for dataset {} (query: {})", datasetId, query);
+        log.info("Saved locally generated flowchart for dataset {}", datasetId);
         return toResponse(saved);
     }
 
-    /**
-     * Get flowchart for a dataset (for full-analysis endpoint).
-     */
     @Transactional
     public FlowchartResponse getOrGenerateForDataset(Long datasetId) {
         FlowchartRequest request = new FlowchartRequest();
@@ -93,24 +85,11 @@ public class FlowchartService {
         return generateFlowchart(request);
     }
 
-    /**
-     * Create a simple flowchart from a query without a dataset.
-     */
     private FlowchartResponse createQueryFlowchart(String query) {
         Map<String, Object> structure = Map.of(
-                "nodes", List.of(
-                        Map.of("id", "start", "label", "Query Received", "type", "input",
-                                "position", Map.of("x", 0, "y", 0)),
-                        Map.of("id", "process", "label", "Process: " + query, "type", "process",
-                                "position", Map.of("x", 0, "y", 100)),
-                        Map.of("id", "result", "label", "Return Results", "type", "output",
-                                "position", Map.of("x", 0, "y", 200))
-                ),
-                "edges", List.of(
-                        Map.of("id", "e1", "source", "start", "target", "process"),
-                        Map.of("id", "e2", "source", "process", "target", "result")
-                ),
-                "description", "Flowchart for query: " + query
+            "nodes", List.of(Map.of("id", "q", "label", "Query: " + query, "type", "process", "position", Map.of("x", 0, "y", 0))),
+            "edges", List.of(),
+            "description", "Query flow"
         );
 
         Flowchart flowchart = new Flowchart();

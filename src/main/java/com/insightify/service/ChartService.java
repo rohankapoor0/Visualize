@@ -1,292 +1,144 @@
 package com.insightify.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insightify.dto.ChartResponse;
-import com.insightify.model.Chart;
-import com.insightify.model.Dataset;
-import com.insightify.repository.ChartRepository;
+import com.insightify.dto.ItemPerformance;
+import com.insightify.dto.MonthlyBreakdown;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Generates chart configurations based on dataset column types.
- *
- * Auto-detection logic:
- *   - numeric + categorical → bar chart
- *   - date/time column present → line chart
- *   - few categories with numeric values → pie chart
- *   - two numeric columns → scatter chart
+ * Restaurant-specific chart data generator.
+ * Produces:
+ *   1. Bar chart → Item performance (top items by revenue)
+ *   2. Pie chart → Revenue contribution per item
+ *   3. Line chart → Monthly revenue/profit trend
+ * All charts are JSON-ready for Recharts frontend rendering.
  */
 @Service
 public class ChartService {
 
     private static final Logger log = LoggerFactory.getLogger(ChartService.class);
 
-    private final DatasetService datasetService;
-    private final ChartRepository chartRepository;
-    private final ObjectMapper objectMapper;
+    private final AggregationService agg;
 
-    public ChartService(DatasetService datasetService,
-                        ChartRepository chartRepository,
-                        ObjectMapper objectMapper) {
-        this.datasetService = datasetService;
-        this.chartRepository = chartRepository;
-        this.objectMapper = objectMapper;
+    public ChartService(AggregationService aggregationService) {
+        this.agg = aggregationService;
     }
 
     /**
-     * Generate or retrieve chart configs for a dataset.
+     * Generate all restaurant-specific charts.
      */
-    @Transactional
-    public List<ChartResponse> generateCharts(Long datasetId) {
-        // Check if charts already exist
-        List<Chart> existing = chartRepository.findByDatasetId(datasetId);
-        if (!existing.isEmpty()) {
-            return existing.stream().map(this::toResponse).toList();
+    public List<Map<String, Object>> generateCharts(List<Map<String, String>> rows,
+                                                     List<Map<String, String>> columns) {
+        List<Map<String, Object>> charts = new ArrayList<>();
+
+        List<ItemPerformance> items = agg.aggregateItemPerformance(rows, columns);
+        List<MonthlyBreakdown> monthly = agg.aggregateByMonthRestaurant(rows, columns);
+
+        if (items.isEmpty()) {
+            log.warn("No item performance data — cannot generate restaurant charts");
+            return charts;
         }
 
-        Dataset dataset = datasetService.getDatasetEntity(datasetId);
-        List<Map<String, String>> rows = datasetService.getDatasetRows(datasetId);
-        List<Map<String, String>> columns = datasetService.getColumnMetadata(datasetId);
+        // 1. BAR CHART — Item Performance (Top 10 by Revenue)
+        charts.add(generateItemPerformanceBar(items));
 
-        List<Chart> charts = new ArrayList<>();
+        // 2. PIE CHART — Revenue Contribution
+        charts.add(generateRevenueContributionPie(items));
 
-        // Separate columns by type
-        List<String> numericCols = columns.stream()
-                .filter(c -> "numeric".equals(c.get("type")))
-                .map(c -> c.get("name"))
-                .toList();
+        log.info("Generated {} restaurant charts for dataset ({} rows, {} items, {} months)",
+                charts.size(), rows.size(), items.size(), monthly.size());
+        return charts;
+    }
 
-        List<String> categoricalCols = columns.stream()
-                .filter(c -> "categorical".equals(c.get("type")))
-                .map(c -> c.get("name"))
-                .toList();
+    // ═══════════════════════════════════════════════════════════════════
+    //  BAR CHART — Item Performance
+    // ═══════════════════════════════════════════════════════════════════
 
-        List<String> dateCols = columns.stream()
-                .filter(c -> "date".equals(c.get("type")))
-                .map(c -> c.get("name"))
-                .toList();
+    /**
+     * Horizontal bar chart: Top 10 items by total revenue.
+     */
+    private Map<String, Object> generateItemPerformanceBar(List<ItemPerformance> items) {
+        List<ItemPerformance> top10 = items.stream().limit(10).toList();
 
-        // 1. Bar chart: categorical + numeric
-        if (!categoricalCols.isEmpty() && !numericCols.isEmpty()) {
-            String category = categoricalCols.get(0);
-            String value = numericCols.get(0);
-            charts.add(createBarChart(datasetId, rows, category, value));
-        }
+        Map<String, Object> chart = new LinkedHashMap<>();
+        chart.put("type", "bar");
+        chart.put("title", "Top Menu Items by Revenue");
+        chart.put("labels", top10.stream().map(ItemPerformance::getItemName).toList());
+        chart.put("data", top10.stream().map(ItemPerformance::getRevenue).toList());
 
-        // 2. Line chart: date/time + numeric
-        if (!dateCols.isEmpty() && !numericCols.isEmpty()) {
-            String dateCol = dateCols.get(0);
-            String valueCol = numericCols.get(0);
-            charts.add(createLineChart(datasetId, rows, dateCol, valueCol));
-        }
+        return chart;
+    }
 
-        // 3. Pie chart: categorical with few unique values + numeric
-        if (!categoricalCols.isEmpty() && !numericCols.isEmpty()) {
-            String category = categoricalCols.get(0);
-            String value = numericCols.get(0);
-            long uniqueCount = rows.stream()
-                    .map(r -> r.get(category))
-                    .distinct().count();
-            if (uniqueCount <= 10) {
-                charts.add(createPieChart(datasetId, rows, category, value));
+    // ═══════════════════════════════════════════════════════════════════
+    //  PIE CHART — Revenue Contribution
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Pie chart: Revenue contribution as percentage per item.
+     * Top 8 items + "Other" for the rest.
+     */
+    private Map<String, Object> generateRevenueContributionPie(List<ItemPerformance> items) {
+        List<String> labels = new ArrayList<>();
+        List<Double> data = new ArrayList<>();
+        double otherPct = 0;
+        int count = 0;
+
+        for (ItemPerformance item : items) {
+            if (count < 8) {
+                labels.add(item.getItemName());
+                data.add(round2(item.getRevenueContributionPct()));
+            } else {
+                otherPct += item.getRevenueContributionPct();
             }
+            count++;
         }
 
-        // 4. Scatter chart: two numeric columns
-        if (numericCols.size() >= 2) {
-            charts.add(createScatterChart(datasetId, rows, numericCols.get(0), numericCols.get(1)));
+        if (otherPct > 0) {
+            labels.add("Other");
+            data.add(round2(otherPct));
         }
 
-        // Fallback: if no charts were generated, create a basic bar chart with first two columns
-        if (charts.isEmpty() && columns.size() >= 2) {
-            charts.add(createBarChart(datasetId, rows,
-                    columns.get(0).get("name"), columns.get(1).get("name")));
-        }
+        Map<String, Object> chart = new LinkedHashMap<>();
+        chart.put("type", "pie");
+        chart.put("title", "Revenue Contribution by Item");
+        chart.put("labels", labels);
+        chart.put("data", data);
 
-        List<Chart> saved = chartRepository.saveAll(charts);
-        log.info("Generated {} charts for dataset {}", saved.size(), datasetId);
-        return saved.stream().map(this::toResponse).toList();
-    }
-
-    // ----- Chart Builders -----
-
-    private Chart createBarChart(Long datasetId, List<Map<String, String>> rows,
-                                 String categoryCol, String valueCol) {
-        // Aggregate values by category
-        Map<String, Double> aggregated = new LinkedHashMap<>();
-        for (Map<String, String> row : rows) {
-            String key = row.getOrDefault(categoryCol, "Unknown");
-            double val = parseDouble(row.get(valueCol));
-            aggregated.merge(key, val, Double::sum);
-        }
-
-        Map<String, Object> config = new LinkedHashMap<>();
-        config.put("labels", new ArrayList<>(aggregated.keySet()));
-        config.put("datasets", List.of(Map.of(
-                "label", valueCol + " by " + categoryCol,
-                "data", new ArrayList<>(aggregated.values()),
-                "backgroundColor", generateColors(aggregated.size())
-        )));
-        config.put("options", Map.of(
-                "responsive", true,
-                "plugins", Map.of("legend", Map.of("position", "top"))
-        ));
-
-        Chart chart = new Chart();
-        chart.setDatasetId(datasetId);
-        chart.setType("bar");
-        chart.setTitle(valueCol + " by " + categoryCol);
-        chart.setConfigJson(toJson(config));
         return chart;
     }
 
-    private Chart createLineChart(Long datasetId, List<Map<String, String>> rows,
-                                  String dateCol, String valueCol) {
-        List<String> labels = rows.stream()
-                .map(r -> r.getOrDefault(dateCol, ""))
-                .toList();
-        List<Double> values = rows.stream()
-                .map(r -> parseDouble(r.get(valueCol)))
-                .toList();
+    // ═══════════════════════════════════════════════════════════════════
+    //  LINE CHART — Monthly Trend
+    // ═══════════════════════════════════════════════════════════════════
 
-        Map<String, Object> config = new LinkedHashMap<>();
-        config.put("labels", labels);
-        config.put("datasets", List.of(Map.of(
-                "label", valueCol + " over time",
-                "data", values,
-                "borderColor", "#4F46E5",
-                "backgroundColor", "rgba(79, 70, 229, 0.1)",
-                "fill", true,
-                "tension", 0.3
-        )));
-        config.put("options", Map.of(
-                "responsive", true,
-                "scales", Map.of(
-                        "x", Map.of("title", Map.of("display", true, "text", dateCol)),
-                        "y", Map.of("title", Map.of("display", true, "text", valueCol))
-                )
-        ));
+    /**
+     * Line chart: Monthly trend (profit by default, fallback to revenue).
+     * X = month, Y = value.
+     */
+    private Map<String, Object> generateMonthlyTrendLine(List<MonthlyBreakdown> monthly) {
+        boolean hasProfitData = monthly.stream().anyMatch(m -> m.getProfit() != 0);
 
-        Chart chart = new Chart();
-        chart.setDatasetId(datasetId);
-        chart.setType("line");
-        chart.setTitle(valueCol + " over time");
-        chart.setConfigJson(toJson(config));
+        Map<String, Object> chart = new LinkedHashMap<>();
+        chart.put("type", "line");
+        chart.put("title", hasProfitData ? "Monthly Profit Trend" : "Monthly Revenue Trend");
+        chart.put("labels", monthly.stream().map(MonthlyBreakdown::getMonth).toList());
+        
+        if (hasProfitData) {
+            chart.put("data", monthly.stream().map(MonthlyBreakdown::getProfit).toList());
+        } else {
+            chart.put("data", monthly.stream().map(MonthlyBreakdown::getRevenue).toList());
+        }
+
         return chart;
     }
 
-    private Chart createPieChart(Long datasetId, List<Map<String, String>> rows,
-                                 String categoryCol, String valueCol) {
-        Map<String, Double> aggregated = new LinkedHashMap<>();
-        for (Map<String, String> row : rows) {
-            String key = row.getOrDefault(categoryCol, "Unknown");
-            double val = parseDouble(row.get(valueCol));
-            aggregated.merge(key, val, Double::sum);
-        }
 
-        Map<String, Object> config = new LinkedHashMap<>();
-        config.put("labels", new ArrayList<>(aggregated.keySet()));
-        config.put("datasets", List.of(Map.of(
-                "data", new ArrayList<>(aggregated.values()),
-                "backgroundColor", generateColors(aggregated.size()),
-                "borderWidth", 2
-        )));
-        config.put("options", Map.of(
-                "responsive", true,
-                "plugins", Map.of(
-                        "legend", Map.of("position", "right"),
-                        "title", Map.of("display", true, "text", valueCol + " distribution by " + categoryCol)
-                )
-        ));
 
-        Chart chart = new Chart();
-        chart.setDatasetId(datasetId);
-        chart.setType("pie");
-        chart.setTitle(valueCol + " distribution by " + categoryCol);
-        chart.setConfigJson(toJson(config));
-        return chart;
-    }
-
-    private Chart createScatterChart(Long datasetId, List<Map<String, String>> rows,
-                                     String xCol, String yCol) {
-        List<Map<String, Double>> points = rows.stream()
-                .map(r -> Map.of(
-                        "x", parseDouble(r.get(xCol)),
-                        "y", parseDouble(r.get(yCol))
-                ))
-                .toList();
-
-        Map<String, Object> config = new LinkedHashMap<>();
-        config.put("datasets", List.of(Map.of(
-                "label", xCol + " vs " + yCol,
-                "data", points,
-                "backgroundColor", "#6366F1",
-                "pointRadius", 5
-        )));
-        config.put("options", Map.of(
-                "responsive", true,
-                "scales", Map.of(
-                        "x", Map.of("title", Map.of("display", true, "text", xCol)),
-                        "y", Map.of("title", Map.of("display", true, "text", yCol))
-                )
-        ));
-
-        Chart chart = new Chart();
-        chart.setDatasetId(datasetId);
-        chart.setType("scatter");
-        chart.setTitle(xCol + " vs " + yCol);
-        chart.setConfigJson(toJson(config));
-        return chart;
-    }
-
-    // ----- Helpers -----
-
-    private double parseDouble(String value) {
-        if (value == null || value.isBlank()) return 0.0;
-        try {
-            return Double.parseDouble(value.replace(",", ""));
-        } catch (NumberFormatException e) {
-            return 0.0;
-        }
-    }
-
-    private List<String> generateColors(int count) {
-        String[] palette = {
-                "#6366F1", "#EC4899", "#14B8A6", "#F59E0B", "#EF4444",
-                "#8B5CF6", "#06B6D4", "#84CC16", "#F97316", "#10B981",
-                "#3B82F6", "#E11D48", "#22D3EE", "#A855F7", "#FACC15"
-        };
-        List<String> colors = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            colors.add(palette[i % palette.length]);
-        }
-        return colors;
-    }
-
-    private String toJson(Object obj) {
-        try {
-            return objectMapper.writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize chart config", e);
-        }
-    }
-
-    private ChartResponse toResponse(Chart chart) {
-        Object config = null;
-        try {
-            config = objectMapper.readValue(chart.getConfigJson(), Object.class);
-        } catch (Exception ignored) {}
-
-        return new ChartResponse(
-                chart.getId(), chart.getDatasetId(), chart.getType(),
-                chart.getTitle(), config, chart.getCreatedAt()
-        );
+    private double round2(double val) {
+        return Math.round(val * 100.0) / 100.0;
     }
 }

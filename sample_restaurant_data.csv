@@ -1,0 +1,46 @@
+Item Name,Category,Quantity Sold,Price,Cost,Date
+Burger,Main Course,150,12.99,5.50,2024-01-15
+Pizza,Main Course,200,14.99,6.00,2024-01-15
+Pasta,Main Course,80,11.99,4.50,2024-01-15
+Caesar Salad,Appetizer,60,8.99,3.00,2024-01-15
+French Fries,Side,180,4.99,1.50,2024-01-15
+Chicken Wings,Appetizer,120,10.99,4.00,2024-01-15
+Grilled Salmon,Main Course,45,18.99,9.00,2024-01-15
+Tacos,Main Course,110,9.99,3.50,2024-01-15
+Ice Cream,Dessert,90,5.99,2.00,2024-01-15
+Cheesecake,Dessert,35,7.99,3.50,2024-01-15
+Mushroom Soup,Appetizer,25,6.99,2.50,2024-01-15
+Garlic Bread,Side,70,3.99,1.00,2024-01-15
+Lemonade,Beverage,200,2.99,0.80,2024-01-15
+Coffee,Beverage,160,3.49,0.60,2024-01-15
+Milkshake,Beverage,55,5.49,2.00,2024-01-15
+Burger,Main Course,170,12.99,5.50,2024-02-15
+Pizza,Main Course,220,14.99,6.00,2024-02-15
+Pasta,Main Course,75,11.99,4.50,2024-02-15
+Caesar Salad,Appetizer,55,8.99,3.00,2024-02-15
+French Fries,Side,190,4.99,1.50,2024-02-15
+Chicken Wings,Appetizer,140,10.99,4.00,2024-02-15
+Grilled Salmon,Main Course,50,18.99,9.00,2024-02-15
+Tacos,Main Course,100,9.99,3.50,2024-02-15
+Ice Cream,Dessert,70,5.99,2.00,2024-02-15
+Cheesecake,Dessert,30,7.99,3.50,2024-02-15
+Mushroom Soup,Appetizer,20,6.99,2.50,2024-02-15
+Garlic Bread,Side,65,3.99,1.00,2024-02-15
+Lemonade,Beverage,180,2.99,0.80,2024-02-15
+Coffee,Beverage,175,3.49,0.60,2024-02-15
+Milkshake,Beverage,50,5.49,2.00,2024-02-15
+Burger,Main Course,190,12.99,5.50,2024-03-15
+Pizza,Main Course,240,14.99,6.00,2024-03-15
+Pasta,Main Course,90,11.99,4.50,2024-03-15
+Caesar Salad,Appetizer,70,8.99,3.00,2024-03-15
+French Fries,Side,210,4.99,1.50,2024-03-15
+Chicken Wings,Appetizer,155,10.99,4.00,2024-03-15
+Grilled Salmon,Main Course,55,18.99,9.00,2024-03-15
+Tacos,Main Course,125,9.99,3.50,2024-03-15
+Ice Cream,Dessert,100,5.99,2.00,2024-03-15
+Cheesecake,Dessert,40,7.99,3.50,2024-03-15
+Mushroom Soup,Appetizer,22,6.99,2.50,2024-03-15
+Garlic Bread,Side,80,3.99,1.00,2024-03-15
+Lemonade,Beverage,220,2.99,0.80,2024-03-15
+Coffee,Beverage,190,3.49,0.60,2024-03-15
+Milkshake,Beverage,60,5.49,2.00,2024-03-15

@@ -1,10 +1,9 @@
 package com.insightify.controller;
 
 import com.insightify.dto.*;
-import com.insightify.service.ChartService;
 import com.insightify.service.DatasetService;
 import com.insightify.service.FlowchartService;
-import com.insightify.service.InsightService;
+import com.insightify.service.LocalAnalysisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +14,7 @@ import java.util.List;
 /**
  * REST controller for analysis operations:
  * - Flowchart generation
- * - Full analysis (combined charts + insights + flowchart)
+ * - Full dashboard analysis (locally computed charts + insights)
  */
 @RestController
 @RequestMapping("/api")
@@ -24,18 +23,15 @@ public class AnalysisController {
     private static final Logger log = LoggerFactory.getLogger(AnalysisController.class);
 
     private final DatasetService datasetService;
-    private final ChartService chartService;
-    private final InsightService insightService;
     private final FlowchartService flowchartService;
+    private final LocalAnalysisService localAnalysisService;
 
     public AnalysisController(DatasetService datasetService,
-                              ChartService chartService,
-                              InsightService insightService,
-                              FlowchartService flowchartService) {
+                              FlowchartService flowchartService,
+                              LocalAnalysisService localAnalysisService) {
         this.datasetService = datasetService;
-        this.chartService = chartService;
-        this.insightService = insightService;
         this.flowchartService = flowchartService;
+        this.localAnalysisService = localAnalysisService;
     }
 
     /**
@@ -54,24 +50,24 @@ public class AnalysisController {
     }
 
     /**
-     * GET /api/datasets/{id}/full-analysis
-     * Returns combined analysis: dataset info + charts + insights + flowchart.
+     * GET /api/datasets/{id}/dashboard
+     * Returns restaurant-specific analytics dashboard with KPIs, item rankings,
+     * monthly analysis, charts, insights, and menu recommendations.
+     * All data computed locally — no external API calls.
      */
-    @GetMapping("/datasets/{id}/full-analysis")
-    public ResponseEntity<ApiResponse<FullAnalysisResponse>> getFullAnalysis(
+    @GetMapping("/datasets/{id}/dashboard")
+    public ResponseEntity<ApiResponse<RestaurantAnalysisResponse>> getDashboardAnalysis(
             @PathVariable Long id) {
-        log.info("Full analysis request for dataset {}", id);
+        log.info("Restaurant dashboard analysis request for dataset {}", id);
 
-        // Gather all analysis components
-        DatasetResponse dataset = datasetService.getDataset(id);
-        List<ChartResponse> charts = chartService.generateCharts(id);
-        InsightResponse insight = insightService.generateInsights(id);
-        FlowchartResponse flowchart = flowchartService.getOrGenerateForDataset(id);
+        // Extract tabular data
+        List<java.util.Map<String, String>> rows = datasetService.getDatasetRows(id);
+        List<java.util.Map<String, String>> columns = datasetService.getColumnMetadata(id);
 
-        FullAnalysisResponse analysis = new FullAnalysisResponse(
-                dataset, charts, insight, flowchart);
+        // Generate restaurant analytics dashboard
+        RestaurantAnalysisResponse dashboard = localAnalysisService.generateFullAnalysis(rows, columns);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Full analysis generated successfully", analysis));
+                ApiResponse.success("Restaurant analytics dashboard generated", dashboard));
     }
 }
