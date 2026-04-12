@@ -15,7 +15,6 @@ function App() {
           <Route path="upload" element={<UploadPage />} />
           <Route path="dashboard/:datasetId" element={<DashboardPage />} />
           <Route path="dashboard/:datasetId/insights" element={<DashboardPage />} />
-          <Route path="dashboard/:datasetId/flowchart" element={<DashboardPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

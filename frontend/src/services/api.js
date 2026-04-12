@@ -16,22 +16,12 @@ export const uploadDataset = async (file, name) => {
       "Content-Type": "multipart/form-data",
     },
   });
-  return response.data;
+  return response.data.data;
 };
 
-export const getCharts = async (datasetId) => {
-  const response = await api.get(`/datasets/${datasetId}/charts`);
-  return response.data;
-};
-
-export const getInsights = async (datasetId) => {
-  const response = await api.get(`/datasets/${datasetId}/insights`);
-  return response.data;
-};
-
-export const generateFlowchart = async (datasetId) => {
-  const response = await api.post("/flowcharts", { datasetId });
-  return response.data;
+export const getDashboardAnalysis = async (datasetId) => {
+  const response = await api.get(`/datasets/${datasetId}/dashboard`);
+  return response.data.data;
 };
 
 export default api;

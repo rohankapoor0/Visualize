@@ -8,7 +8,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xl">I</div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Insightify</span>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Visualize AI</span>
           </div>
           <nav className="flex items-center gap-6">
             <a href="#features" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">Features</a>
@@ -26,7 +26,7 @@ export default function LandingPage() {
             Your Data. One Place. <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Actually Understood.</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Insightify brings your datasets, charts, trends, and actionable insights into one clean workspace so nothing slips through.
+            Visualize AI brings your datasets, charts, trends, and actionable insights into one clean workspace so nothing slips through.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <NavLink to="/app/upload" className="flex items-center justify-center gap-2 w-full sm:w-auto bg-indigo-600 text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/25">
@@ -60,7 +60,7 @@ export default function LandingPage() {
                   <Database size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">Instant Processing</h3>
-                <p className="text-slate-600">Upload CSV or XLSX files and Insightify automatically structures and types your columns perfectly.</p>
+                <p className="text-slate-600">Upload CSV or XLSX files and Visualize AI automatically structures and types your columns perfectly.</p>
               </div>
               
               <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-lg transition-shadow">
@@ -84,7 +84,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="bg-slate-900 py-12 px-6 text-center text-slate-400">
-        <p>© 2026 Insightify. Built for modern data analysis.</p>
+        <p>© 2026 Visualize AI. Built for modern data analysis.</p>
       </footer>
     </div>
   );

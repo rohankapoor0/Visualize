@@ -10,7 +10,6 @@ export default function Sidebar() {
     ...(datasetId ? [
       { name: 'Dashboard', path: `/app/dashboard/${datasetId}`, icon: LayoutDashboard },
       { name: 'Insights', path: `/app/dashboard/${datasetId}/insights`, icon: Lightbulb },
-      { name: 'Flowchart', path: `/app/dashboard/${datasetId}/flowchart`, icon: Workflow },
     ] : [])
   ];
 
@@ -19,7 +18,7 @@ export default function Sidebar() {
       <div className="p-6">
         <NavLink to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xl">I</div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Insightify</span>
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Visualize AI</span>
         </NavLink>
       </div>
       

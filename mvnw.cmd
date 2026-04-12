@@ -9,22 +9,22 @@
 @REM Set local scope for the variables with windows NT shell
 if "%OS%"=="Windows_NT" setlocal
 
-set WRAPPER_JAR="%~dp0\.mvn\wrapper\maven-wrapper.jar"
-set WRAPPER_PROPERTIES="%~dp0\.mvn\wrapper\maven-wrapper.properties"
-set WRAPPER_URL="https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar"
+set WRAPPER_JAR=%~dp0.mvn\wrapper\maven-wrapper.jar
+set WRAPPER_PROPERTIES=%~dp0.mvn\wrapper\maven-wrapper.properties
+set WRAPPER_URL=https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar
 
 @REM Extension to allow automatically downloading the maven-wrapper.jar from Maven-central
 @REM This allows using the maven wrapper in projects that prohibit checking in binary data.
-if exist %WRAPPER_JAR% (
+if exist "%WRAPPER_JAR%" (
     if "%MVNW_VERBOSE%" == "true" (
-        echo Found %WRAPPER_JAR%
+        echo Found "%WRAPPER_JAR%"
     )
 ) else (
     if not "%MVNW_REPOURL%" == "" (
         SET WRAPPER_URL="%MVNW_REPOURL%/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar"
     )
     if "%MVNW_VERBOSE%" == "true" (
-        echo Couldn't find %WRAPPER_JAR%, downloading it ...
+        echo Couldn't find "%WRAPPER_JAR%", downloading it ...
         echo Downloading from: %WRAPPER_URL%
     )
 
@@ -36,7 +36,7 @@ if exist %WRAPPER_JAR% (
         "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $webclient.DownloadFile('%WRAPPER_URL%', '%WRAPPER_JAR%')"^
         "}"
     if "%MVNW_VERBOSE%" == "true" (
-        echo Finished downloading %WRAPPER_JAR%
+        echo Finished downloading "%WRAPPER_JAR%"
     )
 )
 
@@ -80,7 +80,7 @@ goto error
 
 :init
 @REM Download Maven distribution if wrapper jar doesn't exist
-if not exist %WRAPPER_JAR% (
+if not exist "%WRAPPER_JAR%" (
     echo Maven Wrapper jar not found. Downloading Maven directly...
     
     set "MAVEN_HOME=%MAVEN_PROJECTBASEDIR%\.mvn\wrapper\maven-dist"
@@ -111,7 +111,8 @@ if not exist %WRAPPER_JAR% (
 
 "%JAVACMD%" ^
   %MAVEN_OPTS% ^
-  -classpath %WRAPPER_JAR% ^
+  -classpath "%WRAPPER_JAR%" ^
+  "-Dmaven.multiModuleProjectDirectory=%MAVEN_PROJECTBASEDIR%" ^
   org.apache.maven.wrapper.MavenWrapperMain %MAVEN_CMD_LINE_ARGS%
 if ERRORLEVEL 1 goto error
 goto end
