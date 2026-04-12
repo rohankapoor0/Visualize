@@ -15,7 +15,7 @@
     <artifactId>insightify</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Insightify</name>
-    <description>AI-powered dataset analysis backend</description>
+    <description>Local dataset analysis backend</description>
 
     <properties>
         <java.version>17</java.version>
@@ -77,6 +77,13 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Dotenv for .env support -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
         </dependency>
 
         <!-- Spring Boot Test -->

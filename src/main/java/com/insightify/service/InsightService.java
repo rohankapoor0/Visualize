@@ -1,86 +1,254 @@
 package com.insightify.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insightify.dto.InsightResponse;
-import com.insightify.model.Dataset;
-import com.insightify.model.Insight;
-import com.insightify.repository.InsightRepository;
+import com.insightify.dto.ItemPerformance;
+import com.insightify.dto.MenuRecommendation;
+import com.insightify.dto.MonthlyBreakdown;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Service for generating and managing AI-powered insights.
+ * Restaurant-specific insight and recommendation generator.
+ * Produces actionable business insights for restaurant owners:
+ *   - Item performance insights (top/bottom sellers)
+ *   - Monthly comparison insights
+ *   - Profit analysis insights
+ *   - Menu optimization recommendations (items to remove/review)
+ *   - Strategic suggestions
+ *
+ * Every insight is backed by real computed data — no generic statements.
  */
 @Service
 public class InsightService {
 
     private static final Logger log = LoggerFactory.getLogger(InsightService.class);
 
-    private final DatasetService datasetService;
-    private final AIService aiService;
-    private final InsightRepository insightRepository;
-    private final ObjectMapper objectMapper;
+    private final AggregationService agg;
 
-    public InsightService(DatasetService datasetService,
-                          AIService aiService,
-                          InsightRepository insightRepository,
-                          ObjectMapper objectMapper) {
-        this.datasetService = datasetService;
-        this.aiService = aiService;
-        this.insightRepository = insightRepository;
-        this.objectMapper = objectMapper;
+    public InsightService(AggregationService aggregationService) {
+        this.agg = aggregationService;
     }
 
     /**
-     * Generate or retrieve insights for a dataset.
+     * Generate restaurant-specific business insights.
+     * Returns a list of human-readable, actionable insight strings.
      */
-    @Transactional
-    public InsightResponse generateInsights(Long datasetId) {
-        // Return existing if available
-        Optional<Insight> existing = insightRepository.findFirstByDatasetId(datasetId);
-        if (existing.isPresent()) {
-            return toResponse(existing.get());
+    public List<String> generateRestaurantInsights(List<Map<String, String>> rows,
+                                                     List<Map<String, String>> columns,
+                                                     List<ItemPerformance> items,
+                                                     List<MonthlyBreakdown> monthly,
+                                                     Map<String, Object> monthOverMonth) {
+        List<String> insights = new ArrayList<>();
+
+        if (items.isEmpty()) {
+            insights.add("Unable to generate restaurant insights — no item data detected.");
+            return insights;
         }
 
-        Dataset dataset = datasetService.getDatasetEntity(datasetId);
-        List<Map<String, String>> rows = datasetService.getDatasetRows(datasetId);
-        List<Map<String, String>> columns = datasetService.getColumnMetadata(datasetId);
+        // ── 1. Top Item Insight ──────────────────────────────────
+        ItemPerformance topItem = items.get(0);
+        insights.add(String.format(
+                "%s is the top-selling item contributing %.1f%% of total revenue (₹%,.2f total revenue).",
+                topItem.getItemName(), topItem.getRevenueContributionPct(), topItem.getRevenue()
+        ));
 
-        // Generate using AI service
-        String summary = aiService.generateSummary(rows, columns, dataset.getName());
-        Map<String, Object> details = aiService.generateDetailedInsights(
-                rows, columns, dataset.getName());
-
-        Insight insight = new Insight();
-        insight.setDatasetId(datasetId);
-        insight.setSummary(summary);
-        try {
-            insight.setDetails(objectMapper.writeValueAsString(details));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize insights", e);
+        // ── 2. Bottom Item Insight ──────────────────────────────────
+        if (items.size() > 1) {
+            ItemPerformance bottomItem = items.get(items.size() - 1);
+            insights.add(String.format(
+                    "%s shows the lowest sales (%d units sold, ₹%,.2f revenue) and may need reconsideration.",
+                    bottomItem.getItemName(), bottomItem.getQuantitySold(), bottomItem.getRevenue()
+            ));
         }
 
-        Insight saved = insightRepository.save(insight);
-        log.info("Generated insights for dataset {}", datasetId);
-        return toResponse(saved);
+        // ── 3. Top 3 Combined ──────────────────────────────────
+        if (items.size() >= 3) {
+            double top3Pct = items.stream().limit(3)
+                    .mapToDouble(ItemPerformance::getRevenueContributionPct).sum();
+            String top3Names = items.stream().limit(3)
+                    .map(ItemPerformance::getItemName)
+                    .collect(Collectors.joining(", "));
+            insights.add(String.format(
+                    "Top 3 items (%s) account for %.1f%% of total revenue.",
+                    top3Names, top3Pct
+            ));
+        }
+
+        // ── 4. Monthly Comparison ──────────────────────────────────
+        if (monthOverMonth != null) {
+            String summary = (String) monthOverMonth.get("summary");
+            if (summary != null && !summary.contains("Not enough")) {
+                insights.add(summary);
+            }
+
+            double revenueGrowth = (double) monthOverMonth.getOrDefault("revenueGrowthPct", 0.0);
+            if (revenueGrowth > 0) {
+                insights.add(String.format(
+                        "Revenue increased by %.1f%% compared to last month — positive momentum.",
+                        Math.abs(revenueGrowth)
+                ));
+            } else if (revenueGrowth < 0) {
+                insights.add(String.format(
+                        "Revenue declined by %.1f%% compared to last month — requires attention.",
+                        Math.abs(revenueGrowth)
+                ));
+            }
+        }
+
+        // ── 5. Profit Analysis ──────────────────────────────────
+        boolean hasCost = items.stream().anyMatch(i -> i.getProfit() != 0);
+        if (hasCost) {
+            ItemPerformance highestProfit = items.stream()
+                    .max(Comparator.comparingDouble(ItemPerformance::getProfit))
+                    .orElse(topItem);
+            insights.add(String.format(
+                    "Highest profit item is %s with ₹%,.2f total profit (%.1f%% margin).",
+                    highestProfit.getItemName(), highestProfit.getProfit(), highestProfit.getProfitMarginPct()
+            ));
+
+            // Negative profit warning
+            List<ItemPerformance> negativeProfit = items.stream()
+                    .filter(i -> i.getProfit() < 0)
+                    .toList();
+            if (!negativeProfit.isEmpty()) {
+                String names = negativeProfit.stream()
+                        .map(ItemPerformance::getItemName)
+                        .collect(Collectors.joining(", "));
+                insights.add(String.format(
+                        "⚠️ WARNING: %d item(s) have negative profit margins: %s — immediate pricing review recommended.",
+                        negativeProfit.size(), names
+                ));
+            }
+        }
+
+        // ── 6. Strategic Recommendations ──────────────────────────────────
+        insights.add("💡 Focus on promoting high-performing items to maximize revenue.");
+        if (hasCost) {
+            insights.add("💡 Consider revising pricing or recipe for low-profit items to improve margins.");
+        }
+
+        log.info("Generated {} restaurant insights for {} items", insights.size(), items.size());
+        return insights;
     }
 
-    private InsightResponse toResponse(Insight insight) {
-        Object details = null;
-        try {
-            details = objectMapper.readValue(insight.getDetails(), Object.class);
-        } catch (Exception ignored) {}
+    /**
+     * Generate menu optimization recommendations.
+     * Flags items that should be removed or reviewed based on:
+     *   - Very low sales volume (bottom 10%)
+     *   - Low revenue contribution (< 2% of total)
+     *   - Low or negative profit margin
+     */
+    public List<MenuRecommendation> generateMenuRecommendations(List<ItemPerformance> items) {
+        if (items.isEmpty()) return List.of();
 
-        return new InsightResponse(
-                insight.getId(), insight.getDatasetId(),
-                insight.getSummary(), details, insight.getCreatedAt()
-        );
+        List<MenuRecommendation> recommendations = new ArrayList<>();
+
+        // Calculate thresholds
+        double avgQty = items.stream().mapToInt(ItemPerformance::getQuantitySold).average().orElse(0);
+        double lowQtyThreshold = avgQty * 0.25; // bottom quarter
+        double lowRevenueThreshold = 2.0; // 2% contribution
+
+        for (ItemPerformance item : items) {
+            List<String> reasons = new ArrayList<>();
+
+            // Check low sales
+            if (item.getQuantitySold() <= lowQtyThreshold) {
+                reasons.add("Very low sales volume (" + item.getQuantitySold() + " units)");
+            }
+
+            // Check low revenue contribution
+            if (item.getRevenueContributionPct() < lowRevenueThreshold) {
+                reasons.add(String.format("Low revenue contribution (%.1f%%)", item.getRevenueContributionPct()));
+            }
+
+            // Check negative profit
+            if (item.getProfit() < 0) {
+                reasons.add(String.format("Negative profit (₹%,.2f loss)", Math.abs(item.getProfit())));
+            }
+            // Check very low margin
+            else if (item.getProfitMarginPct() > 0 && item.getProfitMarginPct() < 10) {
+                reasons.add(String.format("Very low profit margin (%.1f%%)", item.getProfitMarginPct()));
+            }
+
+            if (!reasons.isEmpty()) {
+                String severity = item.getProfit() < 0 ? "critical" : "warning";
+                String action;
+                if (item.getProfit() < 0) {
+                    action = "Immediate pricing or recipe revision needed — currently losing money";
+                } else if (reasons.size() >= 2) {
+                    action = "Consider removing from menu or significant recipe/pricing overhaul";
+                } else if (reasons.stream().anyMatch(r -> r.contains("low sales"))) {
+                    action = "Consider removing or running promotion to boost sales";
+                } else {
+                    action = "Review pricing strategy to improve profitability";
+                }
+
+                recommendations.add(new MenuRecommendation(
+                        item.getItemName(),
+                        String.join("; ", reasons),
+                        action,
+                        severity
+                ));
+            }
+        }
+
+        log.info("Generated {} menu recommendations for {} items", recommendations.size(), items.size());
+        return recommendations;
+    }
+
+    public List<String> generateProfitOptimizationSuggestions(List<ItemPerformance> leastSelling, List<ItemPerformance> topItems) {
+        List<String> suggestions = new ArrayList<>();
+        
+        for (ItemPerformance item : leastSelling) {
+            suggestions.add(String.format("Consider removing or redesigning %s due to consistently low sales (%d units).", 
+                    item.getItemName(), item.getQuantitySold()));
+        }
+
+        for (ItemPerformance item : topItems) {
+            suggestions.add(String.format("Focus on promoting %s as it drives high sales volume (%d units).", 
+                    item.getItemName(), item.getQuantitySold()));
+        }
+
+        if (leastSelling.stream().anyMatch(i -> i.getProfit() < 0)) {
+            suggestions.add("Optimize pricing or cost structure for low-margin or negative-profit items to prevent active losses.");
+        }
+
+        if (suggestions.isEmpty()) {
+            suggestions.add("Maintain current menu strategy while exploring new promotional opportunities.");
+        }
+
+        return suggestions;
+    }
+
+    /**
+     * Plain-text summary for the legacy /insights endpoint.
+     */
+    public String generatePlainTextInsights(List<Map<String, String>> rows,
+                                             List<Map<String, String>> columns) {
+        List<ItemPerformance> items = agg.aggregateItemPerformance(rows, columns);
+        List<MonthlyBreakdown> monthly = agg.aggregateByMonthRestaurant(rows, columns);
+        List<String> insights = generateRestaurantInsights(rows, columns, items, monthly, null);
+        List<MenuRecommendation> recs = generateMenuRecommendations(items);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("═══ Restaurant Analytics Report ═══\n\n");
+
+        sb.append("📊 Key Insights:\n");
+        for (int i = 0; i < insights.size(); i++) {
+            sb.append(String.format("  %d. %s\n", i + 1, insights.get(i)));
+        }
+
+        if (!recs.isEmpty()) {
+            sb.append("\n🔍 Menu Optimization Recommendations:\n");
+            for (MenuRecommendation rec : recs) {
+                sb.append(String.format("  • %s — %s → %s\n",
+                        rec.getItemName(), rec.getReason(), rec.getAction()));
+            }
+        }
+
+        return sb.toString();
     }
 }

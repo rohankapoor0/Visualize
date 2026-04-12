@@ -71,7 +71,10 @@ public class FileParsingService {
                     .toList();
 
             List<Map<String, String>> rows = new ArrayList<>();
-            for (int i = 1; i < allLines.size(); i++) {
+            // Limit to max 5000 rows for the MVP to prevent massive memory issues and Jackson serialization freezing
+            int maxRows = Math.min(allLines.size(), 5001); 
+            
+            for (int i = 1; i < maxRows; i++) {
                 String[] line = allLines.get(i);
                 Map<String, String> row = new LinkedHashMap<>();
                 for (int j = 0; j < headers.size(); j++) {
@@ -81,7 +84,7 @@ public class FileParsingService {
                 rows.add(row);
             }
 
-            log.info("Parsed CSV: {} columns, {} rows", headers.size(), rows.size());
+            log.info("Parsed CSV: {} columns, {} rows (truncated to max 5000)", headers.size(), rows.size());
             return new ParseResult(headers, rows);
 
         } catch (CsvException e) {
