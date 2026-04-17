@@ -204,8 +204,21 @@ public class InsightService {
         
         // Only focus on low performing items (bottom sellers)
         for (ItemPerformance item : leastSelling) {
-            suggestions.add(String.format("Consider removing or redesigning %s due to consistently low sales volume (%d units).", 
-                    item.getItemName(), item.getQuantitySold()));
+            double averagePrice = item.getQuantitySold() > 0 ? item.getRevenue() / item.getQuantitySold() : 0.0;
+            
+            if (averagePrice > 0 && averagePrice <= 50) {
+                suggestions.add(String.format("Keep %s as an affordable add-on. At a low price point of ₹%.0f, removing it won't optimize costs. Consider bundling it instead.", 
+                        item.getItemName(), averagePrice));
+            } else if (item.getQuantitySold() < 100) {
+                suggestions.add(String.format("Consider retiring %s due to critically low sales volume (%d units) for a premium item.", 
+                        item.getItemName(), item.getQuantitySold()));
+            } else if (item.getProfit() < 0) {
+                suggestions.add(String.format("Increase the price or optimize the recipe cost for %s. Despite selling %d units, it costs more than it earns.", 
+                        item.getItemName(), item.getQuantitySold()));
+            } else {
+                suggestions.add(String.format("Consider tweaking the price point of %s to improve margin. It sells decently (%d units) but underperforms in total revenue.", 
+                        item.getItemName(), item.getQuantitySold()));
+            }
         }
 
         // Focus on items losing money

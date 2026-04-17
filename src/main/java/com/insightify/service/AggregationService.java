@@ -32,8 +32,7 @@ public class AggregationService {
             DateTimeFormatter.ofPattern("dd/MM/yyyy"),
             DateTimeFormatter.ofPattern("yyyy/MM/dd"),
             DateTimeFormatter.ofPattern("M/d/yyyy"),
-            DateTimeFormatter.ofPattern("d-M-yyyy")
-    );
+            DateTimeFormatter.ofPattern("d-M-yyyy"));
 
     // ── Date formats: YearMonth (without day, e.g. Jan-2024) ──
     private static final List<DateTimeFormatter> MONTH_FORMATS = List.of(
@@ -41,63 +40,56 @@ public class AggregationService {
             DateTimeFormatter.ofPattern("MMM yyyy"),
             DateTimeFormatter.ofPattern("yyyy-MM"),
             DateTimeFormatter.ofPattern("MM/yyyy"),
-            DateTimeFormatter.ofPattern("MMMM yyyy")
-    );
+            DateTimeFormatter.ofPattern("MMMM yyyy"));
 
     // Column names that strongly suggest a date even if format detection is weak
     private static final Set<String> DATE_COLUMN_HINTS = Set.of(
-            "date", "month", "year", "period", "time", "day", "week", "quarter"
-    );
+            "date", "month", "year", "period", "time", "day", "week", "quarter");
 
     // Column names that strongly suggest categories (not numeric metrics)
     private static final Set<String> CATEGORICAL_COLUMN_HINTS = Set.of(
             "category", "product", "region", "type", "name", "brand", "department",
             "segment", "group", "class", "country", "city", "state", "store",
-            "channel", "status", "gender", "item", "sku", "model", "tier"
-    );
+            "channel", "status", "gender", "item", "sku", "model", "tier");
 
     // Column names that strongly suggest primary numeric metrics
     private static final Set<String> METRIC_COLUMN_HINTS = Set.of(
             "sales", "revenue", "profit", "amount", "total", "price", "cost",
             "income", "quantity", "units", "count", "value", "spend", "budget",
             "earning", "turnover", "gross", "net", "margin", "volume",
-            "weekly_sales", "monthly_sales", "daily_sales"
-    );
+            "weekly_sales", "monthly_sales", "daily_sales");
 
     // ═══════════════════════════════════════════════════════════════════
-    //  RESTAURANT-SPECIFIC COLUMN HINTS
+    // RESTAURANT-SPECIFIC COLUMN HINTS
     // ═══════════════════════════════════════════════════════════════════
 
     private static final Set<String> ITEM_NAME_HINTS = Set.of(
             "item", "item_name", "itemname", "menu_item", "menuitem",
             "product", "product_name", "productname", "dish", "food",
-            "food_item", "fooditem", "meal", "name", "description"
-    );
+            "food_item", "fooditem", "meal", "name", "description");
 
     private static final Set<String> PRICE_HINTS = Set.of(
             "price", "unit_price", "unitprice", "selling_price", "sellingprice",
             "menu_price", "menuprice", "item_price", "itemprice", "rate",
-            "mrp", "amount"
-    );
+            "mrp", "amount");
 
     private static final Set<String> QUANTITY_HINTS = Set.of(
             "quantity", "qty", "quantity_sold", "quantitysold", "units_sold",
             "unitssold", "units", "count", "orders", "sold", "num_sold",
-            "numsold", "volume"
-    );
+            "numsold", "volume");
 
     private static final Set<String> COST_HINTS = Set.of(
             "cost", "unit_cost", "unitcost", "cogs", "food_cost", "foodcost",
-            "cost_price", "costprice", "expense", "material_cost", "materialcost"
-    );
+            "cost_price", "costprice", "expense", "material_cost", "materialcost");
 
     // ═══════════════════════════════════════════════════════════════════
-    //  SMART COLUMN DETECTION
+    // SMART COLUMN DETECTION
     // ═══════════════════════════════════════════════════════════════════
 
     /**
      * Find the BEST numeric column for the primary metric.
-     * Priority: name-hinted metric columns > non-ID numeric columns > any numeric column.
+     * Priority: name-hinted metric columns > non-ID numeric columns > any numeric
+     * column.
      * Excludes ID-like columns (Store, ID, etc.) from being the primary metric.
      */
     public String findMetricColumn(List<Map<String, String>> columns, List<Map<String, String>> rows) {
@@ -106,7 +98,8 @@ public class AggregationService {
                 .map(c -> c.get("name"))
                 .toList();
 
-        if (numericCols.isEmpty()) return null;
+        if (numericCols.isEmpty())
+            return null;
 
         // 1st pass: find columns whose name matches known metric hints
         for (String col : numericCols) {
@@ -119,7 +112,8 @@ public class AggregationService {
             }
         }
 
-        // 2nd pass: exclude ID-like columns (low cardinality relative to rows, or name hints)
+        // 2nd pass: exclude ID-like columns (low cardinality relative to rows, or name
+        // hints)
         List<String> nonIdCols = numericCols.stream()
                 .filter(col -> !isIdLikeColumn(col, rows))
                 .toList();
@@ -184,7 +178,8 @@ public class AggregationService {
                 .filter(name -> isIdLikeColumn(name, rows))
                 .forEach(allCandidates::add);
 
-        if (allCandidates.isEmpty()) return null;
+        if (allCandidates.isEmpty())
+            return null;
 
         // Prefer name-hinted columns
         for (String col : allCandidates) {
@@ -207,8 +202,10 @@ public class AggregationService {
                             .distinct()
                             .count();
                     // Sweet spot: 2-30 categories. Penalize too many or too few.
-                    if (distinct >= 2 && distinct <= 30) return 100 - distinct;
-                    if (distinct > 30) return 30 - distinct; // negative, penalized
+                    if (distinct >= 2 && distinct <= 30)
+                        return 100 - distinct;
+                    if (distinct > 30)
+                        return 30 - distinct; // negative, penalized
                     return -100; // only 1 distinct value, useless
                 }))
                 .orElse(allCandidates.get(0));
@@ -217,7 +214,8 @@ public class AggregationService {
     /**
      * Find the date column.
      * Uses both type inference AND column name hints.
-     * Also detects month-year formats (e.g., "Jan-2024") that the type inferrer misses.
+     * Also detects month-year formats (e.g., "Jan-2024") that the type inferrer
+     * misses.
      */
     public String findDateColumn(List<Map<String, String>> columns, List<Map<String, String>> rows) {
         // First: check columns tagged as "date" by the type inferrer
@@ -251,7 +249,8 @@ public class AggregationService {
         // Third: brute-force check all non-numeric columns
         for (Map<String, String> col : columns) {
             String type = col.get("type");
-            if ("numeric".equalsIgnoreCase(type)) continue;
+            if ("numeric".equalsIgnoreCase(type))
+                continue;
             String name = col.get("name");
             int sampleSize = Math.min(20, rows.size());
             long parseable = rows.subList(0, sampleSize).stream()
@@ -279,14 +278,15 @@ public class AggregationService {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  PARSING HELPERS
+    // PARSING HELPERS
     // ═══════════════════════════════════════════════════════════════════
 
     /**
      * Parse string to double safely.
      */
     public double parseNumeric(String value) {
-        if (value == null || value.trim().isEmpty()) return 0.0;
+        if (value == null || value.trim().isEmpty())
+            return 0.0;
         try {
             return Double.parseDouble(value.replace(",", "").replace("$", "").replace("€", "").trim());
         } catch (NumberFormatException e) {
@@ -299,7 +299,8 @@ public class AggregationService {
      * Supports both full dates and month-year formats.
      */
     public String parseToSortableDate(String value) {
-        if (value == null || value.trim().isEmpty()) return null;
+        if (value == null || value.trim().isEmpty())
+            return null;
         String trimmed = value.trim();
 
         // Try full date formats first (these have day)
@@ -307,7 +308,8 @@ public class AggregationService {
             try {
                 LocalDate date = LocalDate.parse(trimmed, fmt);
                 return date.toString(); // yyyy-MM-dd
-            } catch (DateTimeParseException ignored) {}
+            } catch (DateTimeParseException ignored) {
+            }
         }
 
         // Try month-year formats (no day)
@@ -315,7 +317,8 @@ public class AggregationService {
             try {
                 YearMonth ym = YearMonth.parse(trimmed, fmt);
                 return ym.toString(); // yyyy-MM
-            } catch (DateTimeParseException ignored) {}
+            } catch (DateTimeParseException ignored) {
+            }
         }
 
         return null;
@@ -325,27 +328,30 @@ public class AggregationService {
      * Parse to LocalDate for sorting (month-year formats get day=1).
      */
     public LocalDate parseToLocalDate(String value) {
-        if (value == null || value.trim().isEmpty()) return null;
+        if (value == null || value.trim().isEmpty())
+            return null;
         String trimmed = value.trim();
 
         for (DateTimeFormatter fmt : FULL_DATE_FORMATS) {
             try {
                 return LocalDate.parse(trimmed, fmt);
-            } catch (DateTimeParseException ignored) {}
+            } catch (DateTimeParseException ignored) {
+            }
         }
 
         for (DateTimeFormatter fmt : MONTH_FORMATS) {
             try {
                 YearMonth ym = YearMonth.parse(trimmed, fmt);
                 return ym.atDay(1);
-            } catch (DateTimeParseException ignored) {}
+            } catch (DateTimeParseException ignored) {
+            }
         }
 
         return null;
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  AGGREGATION
+    // AGGREGATION
     // ═══════════════════════════════════════════════════════════════════
 
     /**
@@ -353,25 +359,28 @@ public class AggregationService {
      * For large datasets (>100 dates), auto-buckets to weekly or monthly.
      */
     public LinkedHashMap<String, Double> aggregateByDate(List<Map<String, String>> rows,
-                                                          String dateCol, String metricCol) {
+            String dateCol, String metricCol) {
         // Group by raw date → sum
         Map<String, Double> rawGrouped = new HashMap<>();
         Map<String, LocalDate> dateMap = new HashMap<>();
 
         for (Map<String, String> row : rows) {
             String rawDate = row.get(dateCol);
-            if (rawDate == null || rawDate.trim().isEmpty()) continue;
+            if (rawDate == null || rawDate.trim().isEmpty())
+                continue;
             rawDate = rawDate.trim();
 
             LocalDate parsed = parseToLocalDate(rawDate);
-            if (parsed == null) continue;
+            if (parsed == null)
+                continue;
 
             String key = parsed.toString(); // normalize to yyyy-MM-dd
             dateMap.put(key, parsed);
             rawGrouped.merge(key, parseNumeric(row.get(metricCol)), Double::sum);
         }
 
-        if (rawGrouped.isEmpty()) return new LinkedHashMap<>();
+        if (rawGrouped.isEmpty())
+            return new LinkedHashMap<>();
 
         // Determine granularity: if too many distinct dates, bucket
         int distinctDates = rawGrouped.size();
@@ -388,12 +397,11 @@ public class AggregationService {
                 .sorted(Comparator.comparing(e -> dateMap.get(e.getKey())))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey, Map.Entry::getValue,
-                        (a, b) -> a, LinkedHashMap::new
-                ));
+                        (a, b) -> a, LinkedHashMap::new));
     }
 
     private LinkedHashMap<String, Double> bucketMonthly(Map<String, Double> rawGrouped,
-                                                         Map<String, LocalDate> dateMap) {
+            Map<String, LocalDate> dateMap) {
         Map<String, Double> monthly = new TreeMap<>();
         for (Map.Entry<String, Double> entry : rawGrouped.entrySet()) {
             LocalDate d = dateMap.get(entry.getKey());
@@ -404,7 +412,7 @@ public class AggregationService {
     }
 
     private LinkedHashMap<String, Double> bucketWeekly(Map<String, Double> rawGrouped,
-                                                        Map<String, LocalDate> dateMap) {
+            Map<String, LocalDate> dateMap) {
         Map<String, Double> weekly = new TreeMap<>();
         for (Map.Entry<String, Double> entry : rawGrouped.entrySet()) {
             LocalDate d = dateMap.get(entry.getKey());
@@ -419,11 +427,12 @@ public class AggregationService {
      * Aggregate by category: sum metric per category, sorted descending.
      */
     public LinkedHashMap<String, Double> aggregateByCategory(List<Map<String, String>> rows,
-                                                              String categoryCol, String metricCol) {
+            String categoryCol, String metricCol) {
         Map<String, Double> grouped = new HashMap<>();
         for (Map<String, String> row : rows) {
             String cat = row.get(categoryCol);
-            if (cat == null || cat.trim().isEmpty()) continue;
+            if (cat == null || cat.trim().isEmpty())
+                continue;
             grouped.merge(cat.trim(), parseNumeric(row.get(metricCol)), Double::sum);
         }
 
@@ -431,23 +440,25 @@ public class AggregationService {
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .collect(Collectors.toMap(
                         Map.Entry::getKey, Map.Entry::getValue,
-                        (a, b) -> a, LinkedHashMap::new
-                ));
+                        (a, b) -> a, LinkedHashMap::new));
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TREND ANALYSIS
+    // TREND ANALYSIS
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * Compute growth rate from aggregated date series: ((last - first) / |first|) * 100
+     * Compute growth rate from aggregated date series: ((last - first) / |first|) *
+     * 100
      */
     public double computeGrowthRate(LinkedHashMap<String, Double> dateSeries) {
-        if (dateSeries == null || dateSeries.size() < 2) return 0.0;
+        if (dateSeries == null || dateSeries.size() < 2)
+            return 0.0;
         List<Double> values = new ArrayList<>(dateSeries.values());
         double first = values.get(0);
         double last = values.get(values.size() - 1);
-        if (first == 0) return last > 0 ? 100.0 : 0.0;
+        if (first == 0)
+            return last > 0 ? 100.0 : 0.0;
         return Math.round(((last - first) / Math.abs(first)) * 10000.0) / 100.0;
     }
 
@@ -456,7 +467,8 @@ public class AggregationService {
      * Returns "increasing", "decreasing", or "stable".
      */
     public String detectTrend(LinkedHashMap<String, Double> dateSeries) {
-        if (dateSeries == null || dateSeries.size() < 2) return "stable";
+        if (dateSeries == null || dateSeries.size() < 2)
+            return "stable";
         List<Double> values = new ArrayList<>(dateSeries.values());
         int n = values.size();
 
@@ -469,31 +481,35 @@ public class AggregationService {
         }
 
         double denom = n * sumX2 - sumX * sumX;
-        if (denom == 0) return "stable";
+        if (denom == 0)
+            return "stable";
 
         double slope = (n * sumXY - sumX * sumY) / denom;
         double avgVal = sumY / n;
-        if (avgVal == 0) return "stable";
+        if (avgVal == 0)
+            return "stable";
 
         double normalizedSlope = slope / avgVal;
-        if (normalizedSlope > 0.015) return "increasing";
-        if (normalizedSlope < -0.015) return "decreasing";
+        if (normalizedSlope > 0.015)
+            return "increasing";
+        if (normalizedSlope < -0.015)
+            return "decreasing";
         return "stable";
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TOP SEGMENT (NEVER returns N/A when data exists)
+    // TOP SEGMENT (NEVER returns N/A when data exists)
     // ═══════════════════════════════════════════════════════════════════
 
     /**
      * Find the top segment. NEVER returns "N/A" if there's any data.
      * Fallback chain:
-     *  1. Category with highest sum of metric
-     *  2. Numeric column with highest total (if no categories)
-     *  3. Description of the largest contributor
+     * 1. Category with highest sum of metric
+     * 2. Numeric column with highest total (if no categories)
+     * 3. Description of the largest contributor
      */
     public String findTopSegment(List<Map<String, String>> rows,
-                                  List<Map<String, String>> columns) {
+            List<Map<String, String>> columns) {
         String metricCol = findMetricColumn(columns, rows);
         String categoryCol = findCategoricalColumn(columns, rows);
 
@@ -521,7 +537,7 @@ public class AggregationService {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  BASIC COMPUTATIONS
+    // BASIC COMPUTATIONS
     // ═══════════════════════════════════════════════════════════════════
 
     public double computeTotal(List<Map<String, String>> rows, String col) {
@@ -542,7 +558,7 @@ public class AggregationService {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  KPI BUILDER
+    // KPI BUILDER
     // ═══════════════════════════════════════════════════════════════════
 
     /**
@@ -550,7 +566,7 @@ public class AggregationService {
      * All descriptions are short and clear.
      */
     public Map<String, Object> buildKpis(List<Map<String, String>> rows,
-                                          List<Map<String, String>> columns) {
+            List<Map<String, String>> columns) {
         String metricCol = findMetricColumn(columns, rows);
         String categoryCol = findCategoricalColumn(columns, rows);
         String dateCol = findDateColumn(columns, rows);
@@ -563,12 +579,10 @@ public class AggregationService {
 
             kpis.put("total", Map.of(
                     "value", round2(total),
-                    "description", "Sum of all " + metricCol + " values across the dataset."
-            ));
+                    "description", "Sum of all " + metricCol + " values across the dataset."));
             kpis.put("average", Map.of(
                     "value", round2(average),
-                    "description", "Average " + metricCol + " per record."
-            ));
+                    "description", "Average " + metricCol + " per record."));
             kpis.put("metricName", metricCol);
         } else {
             kpis.put("total", Map.of("value", 0, "description", "No numeric metric column detected."));
@@ -582,8 +596,7 @@ public class AggregationService {
             double growth = computeGrowthRate(dateSeries);
             kpis.put("growth", Map.of(
                     "value", growth,
-                    "description", "Change from earliest to latest period."
-            ));
+                    "description", "Change from earliest to latest period."));
         } else {
             kpis.put("growth", Map.of("value", 0.0, "description", "No date column for growth calculation."));
         }
@@ -592,8 +605,7 @@ public class AggregationService {
         String topSegment = findTopSegment(rows, columns);
         kpis.put("topCategory", Map.of(
                 "value", topSegment,
-                "description", "Category contributing highest total value."
-        ));
+                "description", "Category contributing highest total value."));
 
         log.info("KPIs built: metric={}, dateCol={}, categoryCol={}, topSegment={}",
                 metricCol, dateCol, categoryCol, topSegment);
@@ -605,7 +617,7 @@ public class AggregationService {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  RESTAURANT-SPECIFIC COLUMN DETECTION
+    // RESTAURANT-SPECIFIC COLUMN DETECTION
     // ═══════════════════════════════════════════════════════════════════
 
     /**
@@ -613,7 +625,7 @@ public class AggregationService {
      * Looks for "Item Name", "Product", "Dish", "Food", etc.
      */
     public String findItemNameColumn(List<Map<String, String>> columns,
-                                      List<Map<String, String>> rows) {
+            List<Map<String, String>> rows) {
         return findColumnByHints(columns, rows, ITEM_NAME_HINTS, false);
     }
 
@@ -622,7 +634,7 @@ public class AggregationService {
      * Looks for "Price", "Unit Price", "Selling Price", etc.
      */
     public String findPriceColumn(List<Map<String, String>> columns,
-                                   List<Map<String, String>> rows) {
+            List<Map<String, String>> rows) {
         return findColumnByHints(columns, rows, PRICE_HINTS, true);
     }
 
@@ -631,7 +643,7 @@ public class AggregationService {
      * Looks for "Quantity Sold", "Qty", "Units Sold", etc.
      */
     public String findQuantityColumn(List<Map<String, String>> columns,
-                                      List<Map<String, String>> rows) {
+            List<Map<String, String>> rows) {
         return findColumnByHints(columns, rows, QUANTITY_HINTS, true);
     }
 
@@ -640,23 +652,26 @@ public class AggregationService {
      * Looks for "Cost", "COGS", "Food Cost", etc.
      */
     public String findCostColumn(List<Map<String, String>> columns,
-                                  List<Map<String, String>> rows) {
+            List<Map<String, String>> rows) {
         return findColumnByHints(columns, rows, COST_HINTS, true);
     }
 
     /**
      * Generic column finder by hint set.
+     * 
      * @param requireNumeric if true, only considers numeric columns
      */
     private String findColumnByHints(List<Map<String, String>> columns,
-                                      List<Map<String, String>> rows,
-                                      Set<String> hints,
-                                      boolean requireNumeric) {
+            List<Map<String, String>> rows,
+            Set<String> hints,
+            boolean requireNumeric) {
         for (Map<String, String> col : columns) {
             String name = col.get("name");
             String type = col.get("type");
-            if (requireNumeric && !"numeric".equalsIgnoreCase(type)) continue;
-            if (!requireNumeric && "numeric".equalsIgnoreCase(type)) continue;
+            if (requireNumeric && !"numeric".equalsIgnoreCase(type))
+                continue;
+            if (!requireNumeric && "numeric".equalsIgnoreCase(type))
+                continue;
 
             String normalized = name.toLowerCase().replaceAll("[_\\-\\s]+", "_").trim();
             String compact = normalized.replace("_", "");
@@ -683,7 +698,7 @@ public class AggregationService {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  RESTAURANT AGGREGATION
+    // RESTAURANT AGGREGATION
     // ═══════════════════════════════════════════════════════════════════
 
     /**
@@ -691,7 +706,7 @@ public class AggregationService {
      * Returns sorted by revenue descending.
      */
     public List<ItemPerformance> aggregateItemPerformance(List<Map<String, String>> rows,
-                                                           List<Map<String, String>> columns) {
+            List<Map<String, String>> columns) {
         String itemCol = findItemNameColumn(columns, rows);
         String priceCol = findPriceColumn(columns, rows);
         String qtyCol = findQuantityColumn(columns, rows);
@@ -704,14 +719,15 @@ public class AggregationService {
         }
 
         // Aggregate by item
-        Map<String, int[]> qtyMap = new LinkedHashMap<>();     // item → totalQty
+        Map<String, int[]> qtyMap = new LinkedHashMap<>(); // item → totalQty
         Map<String, double[]> revenueMap = new LinkedHashMap<>(); // item → totalRevenue
-        Map<String, double[]> profitMap = new LinkedHashMap<>();  // item → totalProfit
-        Map<String, String> categoryMap = new LinkedHashMap<>();  // item → category
+        Map<String, double[]> profitMap = new LinkedHashMap<>(); // item → totalProfit
+        Map<String, String> categoryMap = new LinkedHashMap<>(); // item → category
 
         for (Map<String, String> row : rows) {
             String item = row.get(itemCol);
-            if (item == null || item.trim().isEmpty()) continue;
+            if (item == null || item.trim().isEmpty())
+                continue;
             item = item.trim();
 
             double price = priceCol != null ? parseNumeric(row.get(priceCol)) : 0;
@@ -720,9 +736,9 @@ public class AggregationService {
             double revenue = price * qty;
             double profit = (price - cost) * qty;
 
-            qtyMap.computeIfAbsent(item, k -> new int[]{0})[0] += (int) qty;
-            revenueMap.computeIfAbsent(item, k -> new double[]{0})[0] += revenue;
-            profitMap.computeIfAbsent(item, k -> new double[]{0})[0] += profit;
+            qtyMap.computeIfAbsent(item, k -> new int[] { 0 })[0] += (int) qty;
+            revenueMap.computeIfAbsent(item, k -> new double[] { 0 })[0] += revenue;
+            profitMap.computeIfAbsent(item, k -> new double[] { 0 })[0] += profit;
 
             if (catCol != null && !categoryMap.containsKey(item)) {
                 String cat = row.get(catCol);
@@ -740,16 +756,15 @@ public class AggregationService {
         List<ItemPerformance> items = new ArrayList<>();
         for (String item : revenueMap.keySet()) {
             double rev = revenueMap.get(item)[0];
-            double prof = profitMap.getOrDefault(item, new double[]{0})[0];
-            int qty = qtyMap.getOrDefault(item, new int[]{0})[0];
+            double prof = profitMap.getOrDefault(item, new double[] { 0 })[0];
+            int qty = qtyMap.getOrDefault(item, new int[] { 0 })[0];
             double contributionPct = grandTotalRevenue > 0 ? (rev / grandTotalRevenue) * 100.0 : 0;
             double marginPct = rev > 0 ? (prof / rev) * 100.0 : 0;
             String category = categoryMap.getOrDefault(item, "");
 
             items.add(new ItemPerformance(
                     item, category, qty, round2(rev), round2(prof),
-                    round2(contributionPct), round2(marginPct)
-            ));
+                    round2(contributionPct), round2(marginPct)));
         }
 
         items.sort((a, b) -> Double.compare(b.getRevenue(), a.getRevenue()));
@@ -761,7 +776,7 @@ public class AggregationService {
      * Returns: revenue, profit, items sold per month — sorted chronologically.
      */
     public List<MonthlyBreakdown> aggregateByMonthRestaurant(List<Map<String, String>> rows,
-                                                              List<Map<String, String>> columns) {
+            List<Map<String, String>> columns) {
         String dateCol = findDateColumn(columns, rows);
         String priceCol = findPriceColumn(columns, rows);
         String qtyCol = findQuantityColumn(columns, rows);
@@ -777,10 +792,12 @@ public class AggregationService {
 
         for (Map<String, String> row : rows) {
             String rawDate = row.get(dateCol);
-            if (rawDate == null || rawDate.trim().isEmpty()) continue;
+            if (rawDate == null || rawDate.trim().isEmpty())
+                continue;
 
             LocalDate parsed = parseToLocalDate(rawDate.trim());
-            if (parsed == null) continue;
+            if (parsed == null)
+                continue;
 
             String monthKey = parsed.getYear() + "-" + String.format("%02d", parsed.getMonthValue());
 
@@ -800,8 +817,7 @@ public class AggregationService {
         for (Map.Entry<String, double[]> entry : monthData.entrySet()) {
             double[] d = entry.getValue();
             result.add(new MonthlyBreakdown(
-                    entry.getKey(), round2(d[0]), round2(d[1]), (int) d[2]
-            ));
+                    entry.getKey(), round2(d[0]), round2(d[1]), (int) d[2]));
         }
 
         return result;

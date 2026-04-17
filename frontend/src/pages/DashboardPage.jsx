@@ -2,13 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { getDashboardAnalysis } from '../services/api';
 import { 
-  Loader2, AlertTriangle, TrendingUp, TrendingDown, 
-  Activity, DollarSign, Target, ShoppingBag, Award, AlertCircle,
-  ArrowUpRight, ArrowDownRight, Minus, UtensilsCrossed, ChefHat,
-  Sparkles, Zap, Info, BarChart3, PieChart as PieIcon, LineChart as LineIcon,
-  ThumbsDown, Lightbulb, Star, Flame
-} from 'lucide-react';
-import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell 
 } from 'recharts';
@@ -42,23 +35,23 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] text-slate-400">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-slate-400 font-body">
         <div className="relative">
-          <div className="absolute inset-0 bg-orange-500 blur-2xl opacity-20 rounded-full animate-pulse"></div>
-          <Loader2 size={56} className="animate-spin relative z-10 text-orange-600 mb-6" />
+          <div className="absolute inset-0 bg-primary blur-2xl opacity-20 rounded-full animate-pulse"></div>
+          <span className="material-symbols-outlined text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600 animate-spin relative z-10 text-6xl mb-6 font-bold" style={{display: 'inline-block'}}>refresh</span>
         </div>
-        <p className="font-semibold text-lg tracking-wide text-slate-600">Analyzing Restaurant Data...</p>
-        <p className="text-sm text-slate-400 mt-1">Computing item performance, trends & recommendations</p>
+        <p className="font-extrabold font-headline text-lg tracking-wide text-slate-800">Deep Learning Analysis in Progress</p>
+        <p className="text-sm font-medium text-slate-500 mt-2">Computing non-obvious correlations in your sales data...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8 bg-red-50/50 backdrop-blur-sm border border-red-200 rounded-3xl text-red-600 flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <AlertTriangle size={48} className="text-red-500 opacity-80" />
-        <h2 className="text-2xl font-bold">Analysis Failed</h2>
-        <span className="font-medium">{error}</span>
+      <div className="p-8 bg-error-container/50 border border-error/20 rounded-3xl text-error flex flex-col items-center justify-center min-h-[50vh] gap-4 font-body shadow-sm">
+        <span className="material-symbols-outlined text-5xl opacity-80">warning</span>
+        <h2 className="text-2xl font-extrabold font-headline text-on-error-container">Analysis Interrupted</h2>
+        <span className="font-medium text-sm text-on-error-container/80">{error}</span>
       </div>
     );
   }
@@ -67,7 +60,6 @@ export default function DashboardPage() {
 
   const { kpis, topItems, leastSellingItems, monthlyAnalysis, monthOverMonth, trend, menuRecommendations, insights, sections, mostProfitableMonth, profitOptimization } = data;
 
-  // KPI extraction
   const totalRevenue = kpis?.totalRevenue;
   const totalProfit = kpis?.totalProfit;
   const monthlyGrowth = kpis?.monthlyGrowth;
@@ -75,124 +67,186 @@ export default function DashboardPage() {
   const topItem = kpis?.topItem;
   const avgOrderValue = kpis?.avgOrderValue;
 
-  // Chart data extraction
   const pieSections = (sections || []).filter(s => (s.chart || s).type === 'pie');
   const lineSections = (sections || []).filter(s => (s.chart || s).type === 'line');
   const barSections = (sections || []).filter(s => (s.chart || s).type === 'bar');
 
   return (
-    <div className="space-y-8 bg-slate-50/50 min-h-screen pb-12 w-full max-w-7xl mx-auto">
+    <div className="space-y-12 bg-surface min-h-screen pb-12 w-full max-w-7xl mx-auto font-body p-8 lg:p-12">
       
       {/* ═══ HEADER ═══ */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200/60 pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-outline-variant/20 pb-8">
         <div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-            <UtensilsCrossed size={36} className="text-orange-500" />
-            Sales Intelligence & Menu Optimization
+          <h1 className="text-4xl lg:text-5xl font-extrabold font-headline text-on-surface tracking-tighter flex items-center gap-4">
+            <span className="p-3 bg-primary-container rounded-xl text-white shadow-sm flex items-center justify-center">
+              <span className="material-symbols-outlined text-3xl">insights</span>
+            </span>
+            {isInsightsView ? "Insights Report" : "Sales Intelligence"}
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">Professional Restaurant Business Analytics</p>
+          <p className="text-on-surface-variant mt-3 text-lg">
+            {isInsightsView ? "Data-driven strategic recommendations." : "We don't just show you numbers; we tell you what they mean."}
+          </p>
         </div>
       </div>
 
-      {/* ═══ KPI CARDS ═══ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KpiCard 
-          title="Total Revenue" 
-          value={totalRevenue?.value != null ? `₹${Number(totalRevenue.value).toLocaleString()}` : 'N/A'} 
-          description={totalRevenue?.description}
-          icon={<DollarSign size={24} className="text-emerald-500" />}
-          gradient="from-emerald-50 to-emerald-100/50"
-          borderColor="border-emerald-200"
-        />
-        <KpiCard 
-          title="Total Profit" 
-          value={totalProfit?.value != null ? `₹${Number(totalProfit.value).toLocaleString()}` : 'N/A'} 
-          description={totalProfit?.description}
-          icon={<TrendingUp size={24} className="text-blue-500" />}
-          gradient="from-blue-50 to-blue-100/50"
-          borderColor="border-blue-200"
-        />
-        <KpiCard 
-          title="Monthly Growth" 
-          value={monthlyGrowth?.value != null ? `${monthlyGrowth.value}%` : 'N/A'} 
-          description={monthlyGrowth?.description}
-          icon={monthlyGrowth?.value > 0 ? <ArrowUpRight size={24} className="text-emerald-500" /> : <ArrowDownRight size={24} className="text-rose-500" />}
-          valueColor={monthlyGrowth?.value > 0 ? "text-emerald-600" : (monthlyGrowth?.value < 0 ? "text-rose-600" : "text-slate-800")}
-          gradient={monthlyGrowth?.value > 0 ? "from-emerald-50 to-emerald-100/50" : "from-rose-50 to-rose-100/50"}
-          borderColor={monthlyGrowth?.value > 0 ? "border-emerald-200" : "border-rose-200"}
-        />
-        <KpiCard 
-          title="Top Item" 
-          value={topItem?.value || 'N/A'} 
-          description={topItem?.description}
-          icon={<Award size={24} className="text-amber-500" />}
-          gradient="from-amber-50 to-amber-100/50"
-          borderColor="border-amber-200"
-        />
-      </div>
+      {!isInsightsView && (
+        <>
 
-      {/* ═══ SECONDARY KPIs ═══ */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <KpiCard 
-          title="Most Profitable Month" 
-          value={mostProfitableMonth?.month || 'N/A'} 
-          description={mostProfitableMonth?.totalRevenue != null ? `₹${Number(mostProfitableMonth.totalRevenue).toLocaleString()} revenue` : ''}
-          icon={<Star size={24} className="text-pink-500" />}
-          gradient="from-pink-50 to-pink-100/50"
-          borderColor="border-pink-200"
-        />
-        <KpiCard 
-          title="Items Sold" 
-          value={totalItemsSold?.value != null ? Number(totalItemsSold.value).toLocaleString() : 'N/A'} 
-          description={totalItemsSold?.description}
-          icon={<ShoppingBag size={24} className="text-violet-500" />}
-          gradient="from-violet-50 to-violet-100/50"
-          borderColor="border-violet-200"
-        />
-        <KpiCard 
-          title="Avg Revenue Per Item" 
-          value={avgOrderValue?.value != null ? `₹${Number(avgOrderValue.value).toLocaleString()}` : 'N/A'} 
-          description={avgOrderValue?.description}
-          icon={<Activity size={24} className="text-cyan-500" />}
-          gradient="from-cyan-50 to-cyan-100/50"
-          borderColor="border-cyan-200"
-        />
-      </div>
+      {/* ═══ HERO KPI BENTO ═══ */}
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Primary Stat */}
+        <div className="md:col-span-2 bg-surface-container-lowest p-8 rounded-[2rem] flex flex-col justify-between shadow-sm border border-outline-variant/10 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-bl-full group-hover:scale-110 transition-transform duration-700"></div>
+          <div className="relative z-10">
+            <p className="text-on-surface-variant font-bold text-sm uppercase tracking-widest mb-2">Total Revenue</p>
+            <h2 className="text-5xl lg:text-6xl font-extrabold font-headline tracking-tighter text-on-surface drop-shadow-sm">
+              {totalRevenue?.value != null ? `₹${Number(totalRevenue.value).toLocaleString()}` : 'N/A'}
+            </h2>
+          </div>
+          <div className="mt-12 flex items-center gap-2 text-primary font-bold relative z-10 bg-primary/5 w-fit px-4 py-2 rounded-full border border-primary/10">
+            <span className="material-symbols-outlined text-sm">schedule</span>
+            <span className="text-sm">{totalRevenue?.description || 'All time'}</span>
+          </div>
+        </div>
+
+        {/* Secondary Stat */}
+        <div className="bg-surface-container-lowest p-8 rounded-[2rem] shadow-sm border border-outline-variant/10 flex flex-col justify-between group">
+          <div className="w-12 h-12 bg-tertiary-fixed rounded-xl flex items-center justify-center text-on-tertiary-fixed-variant mb-6 group-hover:scale-110 transition-transform shadow-inner">
+            <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
+          </div>
+          <div>
+            <p className="text-on-surface-variant font-bold text-xs uppercase tracking-widest mb-2">Total Profit</p>
+            <h3 className="text-4xl font-extrabold font-headline tracking-tighter text-on-surface">
+              {totalProfit?.value != null ? `₹${Number(totalProfit.value).toLocaleString()}` : 'N/A'}
+            </h3>
+            <p className="text-xs text-on-surface-variant mt-3 font-medium border-t border-outline-variant/20 pt-3">{totalProfit?.description || 'After calculated item costs'}</p>
+          </div>
+        </div>
+
+        {/* Growth Stat */}
+        <div className="bg-surface-container-lowest p-8 rounded-[2rem] shadow-sm border border-outline-variant/10 flex flex-col justify-between group">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform ${
+            monthlyGrowth?.value > 0 ? 'bg-primary/10 text-primary' : 'bg-error-container text-error'
+          }`}>
+            <span className="material-symbols-outlined text-2xl">
+              {monthlyGrowth?.value > 0 ? 'show_chart' : 'trending_down'}
+            </span>
+          </div>
+          <div>
+            <p className="text-on-surface-variant font-bold text-xs uppercase tracking-widest mb-2">Monthly Growth</p>
+            <h3 className={`text-4xl font-extrabold font-headline tracking-tighter ${
+              monthlyGrowth?.value > 0 ? 'text-primary' : 'text-error'
+            }`}>
+              {monthlyGrowth?.value != null ? `${monthlyGrowth.value > 0 ? '+' : ''}${monthlyGrowth.value}%` : 'N/A'}
+            </h3>
+            <p className={`text-xs mt-3 font-bold border-t border-outline-variant/20 pt-3 ${
+              monthlyGrowth?.value > 0 ? 'text-primary/70' : 'text-error/70'
+            }`}>
+              {monthlyGrowth?.description || 'vs previous month'}
+            </p>
+          </div>
+        </div>
+
+        {/* Highlight Item */}
+        <div className="md:col-span-2 signature-gradient text-white p-8 rounded-[2rem] flex flex-col md:flex-row items-center justify-between shadow-xl shadow-indigo-500/20 relative overflow-hidden">
+          <div className="relative z-10 flex-1 pr-6">
+            <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-4 inline-block border border-white/20">Volume Leader</span>
+            <h2 className="text-4xl font-extrabold font-headline mb-3 text-white drop-shadow-md">
+              {topItem?.value || 'N/A'}
+            </h2>
+            <p className="text-white/80 max-w-xs text-sm font-medium leading-relaxed">
+              {topItem?.description || 'Highest contributing item based on unit sales volume and consistency.'}
+            </p>
+          </div>
+          <div className="relative w-40 h-40 mt-6 md:mt-0 opacity-20">
+            <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-[150px]">lunch_dining</span>
+          </div>
+        </div>
+
+        {/* Most Profitable Month */}
+        <div className="md:col-span-2 bg-gradient-to-r from-tertiary-container to-tertiary p-8 rounded-[2rem] flex flex-row items-center justify-between shadow-xl shadow-orange-500/10 relative overflow-hidden text-white group">
+          <div className="relative z-10">
+            <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-4 inline-block border border-white/20">Peak Performance</span>
+            <h2 className="text-4xl lg:text-5xl font-extrabold font-headline mb-3 text-white drop-shadow-md">
+              {mostProfitableMonth?.month || 'N/A'}
+            </h2>
+            <p className="text-white/80 text-sm font-medium">
+              {mostProfitableMonth?.totalRevenue != null ? `₹${Number(mostProfitableMonth.totalRevenue).toLocaleString()} revenue during this period` : 'Revenue tracking not available'}
+            </p>
+          </div>
+          <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-inner group-hover:scale-110 transition-transform">
+            <span className="material-symbols-outlined text-5xl">hotel_class</span>
+          </div>
+        </div>
+
+        {/* Other Minor KPIs */}
+        <div className="md:col-span-2 bg-surface-container-low p-6 rounded-[2rem] border border-outline-variant/10 flex items-center justify-between gap-4 group">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-secondary group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined">inventory_2</span>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Items Sold</p>
+              <p className="text-2xl font-extrabold font-headline text-on-surface">
+                {totalItemsSold?.value != null ? Number(totalItemsSold.value).toLocaleString() : 'N/A'}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 font-medium max-w-[120px] text-right">{totalItemsSold?.description}</p>
+        </div>
+        
+        <div className="md:col-span-2 bg-surface-container-low p-6 rounded-[2rem] border border-outline-variant/10 flex items-center justify-between gap-4 group">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-secondary group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined">receipt_long</span>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Avg Vol/Item</p>
+              <p className="text-2xl font-extrabold font-headline text-on-surface">
+                {avgOrderValue?.value != null ? `₹${Number(avgOrderValue.value).toLocaleString()}` : 'N/A'}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 font-medium max-w-[120px] text-right">{avgOrderValue?.description}</p>
+        </div>
+
+      </section>
 
       {/* ═══ MONTH-OVER-MONTH COMPARISON BANNER ═══ */}
       {monthOverMonth && monthOverMonth.summary && !monthOverMonth.summary.includes("Not enough") && (
-        <div className={`rounded-3xl p-6 border flex items-center gap-4 shadow-sm ${
+        <div className={`rounded-[2rem] p-8 border flex items-center gap-6 shadow-sm ${
           monthOverMonth.direction === 'increased' 
-            ? 'bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-200' 
+            ? 'bg-gradient-to-r from-surface-container-lowest to-surface-container-lowest border-primary/20' 
             : monthOverMonth.direction === 'declined'
-            ? 'bg-gradient-to-r from-rose-50 to-rose-100/50 border-rose-200'
-            : 'bg-gradient-to-r from-slate-50 to-slate-100/50 border-slate-200'
+            ? 'bg-gradient-to-r from-surface-container-lowest to-error-container/20 border-error/20'
+            : 'bg-surface-container-lowest border-outline-variant/20'
         }`}>
-          <div className={`p-4 rounded-2xl ${
-            monthOverMonth.direction === 'increased' ? 'bg-emerald-100' : monthOverMonth.direction === 'declined' ? 'bg-rose-100' : 'bg-slate-100'
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-inner ${
+            monthOverMonth.direction === 'increased' ? 'bg-primary/10' 
+            : monthOverMonth.direction === 'declined' ? 'bg-error/10' 
+            : 'bg-surface-container'
           }`}>
-            {monthOverMonth.direction === 'increased' 
-              ? <TrendingUp size={28} className="text-emerald-600" />
-              : monthOverMonth.direction === 'declined'
-              ? <TrendingDown size={28} className="text-rose-600" />
-              : <Minus size={28} className="text-slate-600" />
-            }
+            <span className={`material-symbols-outlined text-3xl font-bold ${
+              monthOverMonth.direction === 'increased' ? 'text-primary' 
+              : monthOverMonth.direction === 'declined' ? 'text-error' : 'text-on-surface-variant'
+            }`}>
+              {monthOverMonth.direction === 'increased' ? 'trending_up' : monthOverMonth.direction === 'declined' ? 'trending_down' : 'horizontal_rule'}
+            </span>
           </div>
           <div className="flex-1">
-            <h3 className={`text-lg font-bold ${
-              monthOverMonth.direction === 'increased' ? 'text-emerald-800' : monthOverMonth.direction === 'declined' ? 'text-rose-800' : 'text-slate-800'
-            }`}>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Month over Month Intelligence</p>
+            <h3 className="text-xl lg:text-2xl font-extrabold font-headline text-on-surface tracking-tight">
               {monthOverMonth.summary}
             </h3>
-            <div className="flex gap-6 mt-1">
-              <span className="text-sm text-slate-500">
-                Revenue: <strong className={monthOverMonth.revenueGrowthPct > 0 ? 'text-emerald-600' : 'text-rose-600'}>
+            <div className="flex gap-8 mt-4 border-t border-outline-variant/10 pt-4">
+              <span className="text-sm font-medium text-on-surface-variant">
+                Revenue Growth: <strong className={`ml-1 ${monthOverMonth.revenueGrowthPct > 0 ? 'text-primary' : 'text-error'}`}>
                   {monthOverMonth.revenueGrowthPct > 0 ? '+' : ''}{monthOverMonth.revenueGrowthPct}%
                 </strong>
               </span>
               {monthOverMonth.profitGrowthPct !== 0 && (
-                <span className="text-sm text-slate-500">
-                  Profit: <strong className={monthOverMonth.profitGrowthPct > 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                <span className="text-sm font-medium text-on-surface-variant">
+                  Profit Growth: <strong className={`ml-1 ${monthOverMonth.profitGrowthPct > 0 ? 'text-primary' : 'text-error'}`}>
                     {monthOverMonth.profitGrowthPct > 0 ? '+' : ''}{monthOverMonth.profitGrowthPct}%
                   </strong>
                 </span>
@@ -202,73 +256,99 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!isInsightsView && (
-        <>
-          {/* ═══ ITEM PERFORMANCE: TOP 5 & BOTTOM 5 ═══ */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {/* Top 5 Items */}
+      {/* ═══ INSIGHTS VIEW ONLY ═══ */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            
+            {/* Top Sellers */}
             {topItems && topItems.length > 0 && (
-              <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4 flex items-center gap-3">
-                  <Flame size={20} className="text-white" />
-                  <h3 className="text-white font-bold text-lg">Top 5 Best Sellers</h3>
+              <div className="space-y-6">
+                <div className="flex items-end justify-between px-2">
+                  <div>
+                    <h2 className="text-3xl font-extrabold font-headline text-on-surface tracking-tighter">Top Performers</h2>
+                    <p className="text-slate-500 text-sm mt-1 font-medium">Volume leaders & high-margin stars</p>
+                  </div>
+                  <span className="text-primary font-bold text-sm cursor-pointer hover:underline">View All</span>
                 </div>
-                <div className="p-4">
-                  {topItems.map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl transition-colors">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center font-extrabold text-emerald-700 text-lg shrink-0">
-                        {i + 1}
+                <div className="bg-surface-container-lowest rounded-[2rem] overflow-hidden shadow-sm border border-outline-variant/20 p-2">
+                  <div className="divide-y divide-slate-100">
+                    {topItems.map((item, i) => (
+                      <div key={i} className="p-4 flex items-center justify-between hover:bg-surface transition-colors rounded-2xl group">
+                        <div className="flex items-center gap-5">
+                          <div className="w-12 h-12 bg-surface-container rounded-xl flex items-center justify-center font-extrabold text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                            {String(i + 1).padStart(2, '0')}
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-on-surface text-lg leading-tight">{item.itemName}</p>
+                            <p className="text-xs font-medium text-slate-500 mt-1">{item.quantitySold} units sold</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-extrabold text-on-surface text-lg">₹{item.revenue?.toLocaleString()}</p>
+                          <div className="flex items-center justify-end gap-1 text-primary text-[10px] font-bold mt-1 bg-primary/5 px-2 py-0.5 rounded-full w-fit ml-auto">
+                            <span className="material-symbols-outlined text-[14px]">arrow_upward</span>
+                            {item.revenueContributionPct}% share
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-slate-800 truncate">{item.itemName}</h4>
-                        <p className="text-xs text-slate-400">{item.quantitySold} units sold · {item.revenueContributionPct}% of revenue</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-extrabold text-emerald-600">₹{item.revenue?.toLocaleString()}</p>
-                        {item.profit !== 0 && (
-                          <p className="text-xs text-slate-400">Profit: ₹{item.profit?.toLocaleString()}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Bottom 5 Items */}
+            {/* Bottom Sellers */}
             {leastSellingItems && leastSellingItems.length > 0 && (
-              <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-r from-rose-500 to-rose-600 px-6 py-4 flex items-center gap-3">
-                  <ThumbsDown size={20} className="text-white" />
-                  <h3 className="text-white font-bold text-lg">Bottom 5 — Needs Attention</h3>
+              <div className="space-y-6">
+                <div className="flex items-end justify-between px-2">
+                  <div>
+                    <h2 className="text-3xl font-extrabold font-headline text-on-surface tracking-tighter">Needs Attention</h2>
+                    <p className="text-slate-500 text-sm mt-1 font-medium">Underperforming items & wastage risk</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-error font-extrabold text-[10px] uppercase tracking-widest bg-error/10 px-3 py-1.5 rounded-full border border-error/20">
+                    <span className="material-symbols-outlined text-sm">warning</span> Action Required
+                  </div>
                 </div>
-                <div className="p-4">
-                  {leastSellingItems.map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 hover:bg-rose-50/50 rounded-2xl transition-colors">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center shrink-0">
-                        <AlertCircle size={18} className="text-rose-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-slate-800 truncate">{item.itemName}</h4>
-                        <p className="text-xs text-slate-400">{item.quantitySold} units sold · {item.revenueContributionPct}% of revenue</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-extrabold text-rose-600">₹{item.revenue?.toLocaleString()}</p>
-                        {item.profit !== 0 && (
-                          <p className={`text-xs ${item.profit < 0 ? 'text-rose-500 font-bold' : 'text-slate-400'}`}>
-                            Profit: {item.profit < 0 ? '-' : ''}₹{Math.abs(item.profit)?.toLocaleString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-surface-container-low rounded-[2rem] overflow-hidden shadow-inner border border-outline-variant/20 p-6">
+                  <table className="w-full text-left border-separate border-spacing-y-2">
+                    <thead>
+                      <tr className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+                        <th className="px-4 py-3 font-bold">Item Name</th>
+                        <th className="px-4 py-3 font-bold text-right">Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leastSellingItems.map((item, i) => (
+                        <tr key={i} className="bg-surface-container-lowest rounded-xl group hover:shadow-md transition-shadow">
+                          <td className="px-4 py-4 rounded-l-xl border-y border-l border-outline-variant/10 group-hover:border-slate-300">
+                            <div>
+                              <p className="font-extrabold text-on-surface">{item.itemName}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] bg-error/10 text-error px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border border-error/5 flex items-center gap-1 w-fit">
+                                  <span className="material-symbols-outlined text-[12px]">trending_down</span> {item.quantitySold || 0} Units Sold
+                                </span>
+                                {item.profit < 0 && (
+                                  <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border border-slate-200">
+                                    Negative Margin
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 rounded-r-xl text-right border-y border-r border-outline-variant/10 group-hover:border-slate-300">
+                            <p className="font-extrabold text-slate-500">₹{item.revenue?.toLocaleString()}</p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
+            
           </div>
 
           {/* ═══ CHARTS ═══ */}
-          <div className="space-y-8">
+          <div className="space-y-12 pt-12">
             
             {/* Pie + Line Row */}
             {(pieSections.length > 0 || lineSections.length > 0) && (
@@ -285,114 +365,55 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-
-          {/* ═══ MENU OPTIMIZATION RECOMMENDATIONS ═══ */}
-          {menuRecommendations && menuRecommendations.length > 0 && (
-            <div className="bg-white rounded-3xl border border-amber-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <ChefHat className="text-white" size={24} />
-                  <h3 className="text-white font-bold text-lg">Menu Optimization Recommendations</h3>
-                </div>
-                <span className="text-white/80 text-xs font-bold uppercase tracking-widest bg-white/15 px-3 py-1 rounded-full">
-                  {menuRecommendations.length} items flagged
-                </span>
-              </div>
-              <div className="p-6 space-y-4">
-                {menuRecommendations.map((rec, i) => (
-                  <div key={i} className={`rounded-2xl p-5 border flex gap-4 items-start ${
-                    rec.severity === 'critical' 
-                      ? 'bg-rose-50/50 border-rose-200' 
-                      : 'bg-amber-50/50 border-amber-200'
-                  }`}>
-                    <div className={`p-2 rounded-xl shrink-0 ${
-                      rec.severity === 'critical' ? 'bg-rose-100' : 'bg-amber-100'
-                    }`}>
-                      <AlertCircle size={20} className={rec.severity === 'critical' ? 'text-rose-500' : 'text-amber-500'} />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-800">{rec.itemName}</h4>
-                      <p className="text-sm text-slate-500 mt-1">{rec.reason}</p>
-                      <p className={`text-sm font-semibold mt-2 ${
-                        rec.severity === 'critical' ? 'text-rose-600' : 'text-amber-600'
-                      }`}>
-                        → {rec.action}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
 
+      {/* ═══ INSIGHTS VIEW ONLY ═══ */}
       {isInsightsView && (
-        <>
-          {/* ═══ BUSINESS INSIGHTS ═══ */}
+        <div className="grid grid-cols-1 gap-12 mt-8">
+          {/* Executive Insights */}
           {insights && insights.length > 0 && (
-            <div className="bg-white rounded-3xl border border-indigo-100 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="text-white" size={24} />
-                  <h3 className="text-white font-bold text-lg">Restaurant Business Insights</h3>
+            <div className="bg-surface-container-lowest rounded-[2.5rem] border border-outline-variant/20 shadow-sm overflow-hidden flex flex-col md:flex-row">
+              <div className="bg-surface p-10 md:w-1/3 border-b md:border-b-0 md:border-r border-outline-variant/20 flex flex-col justify-center relative overflow-hidden">
+                <div className="absolute top-10 right-10 text-primary opacity-10">
+                  <span className="material-symbols-outlined text-[120px]">auto_awesome</span>
                 </div>
-                <span className="text-indigo-100 text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full">
-                  Data-Driven
-                </span>
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-8 border border-primary/10 shadow-inner relative z-10">
+                  <span className="material-symbols-outlined text-3xl">psychology</span>
+                </div>
+                <h3 className="text-3xl font-extrabold font-headline text-on-surface mb-3 relative z-10 tracking-tight">Executive AI Insights</h3>
+                <p className="text-on-surface-variant font-medium leading-relaxed relative z-10 text-sm">
+                  Strategic observations generated from multidimensional data correlation.
+                </p>
               </div>
-              <div className="p-8">
-                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                  <ul className="space-y-4">
-                    {insights.map((insight, i) => (
-                      <li key={i} className="flex gap-3 text-sm text-slate-700 leading-relaxed items-start">
-                        <span className="text-indigo-500 font-bold text-lg shrink-0 mt-[-2px]">•</span>
-                        <span className="font-medium">{insight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              <div className="p-10 md:w-2/3">
+                <ul className="space-y-6 relative">
+                  {insights.map((insight, i) => (
+                    <li key={i} className="flex gap-5 text-on-surface leading-relaxed items-start group">
+                      <span className="w-8 h-8 rounded-full bg-surface border border-outline-variant/30 flex items-center justify-center text-primary font-bold text-sm shrink-0 group-hover:bg-primary group-hover:text-white transition-colors mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="font-medium text-[15px] pt-1">{insight}</span>
+                    </li>
+                  ))}
+                  <div className="absolute left-4 top-8 bottom-4 w-px bg-outline-variant/20 -z-10 hidden sm:block"></div>
+                </ul>
               </div>
             </div>
           )}
 
-          {/* ═══ PROFIT OPTIMIZATION SUGGESTIONS ═══ */}
-          {profitOptimization && profitOptimization.length > 0 && (
-            <div className="bg-white rounded-3xl border border-indigo-100 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-8 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Lightbulb className="text-white" size={24} />
-                  <h3 className="text-white font-bold text-lg">Profit Optimization Suggestions</h3>
-                </div>
-                <span className="text-teal-100 text-xs font-bold uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full">
-                  Actionable
-                </span>
-              </div>
-              <div className="p-8">
-                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                  <ul className="space-y-4">
-                    {profitOptimization.map((suggestion, i) => (
-                      <li key={i} className="flex gap-3 text-sm text-slate-700 leading-relaxed items-start">
-                        <span className="text-teal-500 font-bold text-lg shrink-0 mt-[-2px]">•</span>
-                        <span className="font-medium">{suggestion}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
+
+        </div>
       )}
-
-
 
       {/* Empty state */}
       {(!sections || sections.length === 0) && (!topItems || topItems.length === 0) && (
-        <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center shadow-sm">
-          <UtensilsCrossed size={48} className="mx-auto text-slate-300 mb-4" />
-          <h3 className="text-xl font-bold text-slate-800">No Restaurant Data Detected</h3>
-          <p className="text-slate-500 mt-2">Upload a dataset with Item Name, Price, Quantity, and Date columns for restaurant analytics.</p>
+        <div className="bg-surface-container-lowest p-16 rounded-[3rem] border border-outline-variant/20 text-center shadow-sm max-w-2xl mx-auto flex flex-col items-center justify-center mt-12 relative overflow-hidden">
+          <div className="w-24 h-24 bg-surface rounded-full flex items-center justify-center mb-6 shadow-inner border border-outline-variant/10">
+            <span className="material-symbols-outlined text-4xl text-slate-300">hourglass_empty</span>
+          </div>
+          <h3 className="text-2xl font-extrabold font-headline text-slate-800 mb-2">Insufficient Processing Data</h3>
+          <p className="text-slate-500 font-medium">Upload a valid dataset containing Item names, Revenue/Price parameters, and Date columns for complete synthesis.</p>
         </div>
       )}
 
@@ -404,37 +425,13 @@ export default function DashboardPage() {
 //  COMPONENTS
 // ═══════════════════════════════════════════════════════════════════
 
-function KpiCard({ title, value, icon, description, valueColor = "text-slate-800", gradient = "from-slate-50 to-slate-100/50", borderColor = "border-slate-200" }) {
-  return (
-    <div className={`bg-gradient-to-br ${gradient} p-6 rounded-3xl border ${borderColor} shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group flex flex-col h-full`}>
-      <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/30 rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
-      <div className="flex justify-between items-start relative z-10 mb-4">
-        <div>
-          <p className="text-sm font-bold tracking-wide text-slate-400 uppercase mb-1">{title}</p>
-          <h3 className={`text-3xl font-extrabold tracking-tight ${valueColor}`}>{value}</h3>
-        </div>
-        <div className="p-3 bg-white/70 rounded-2xl border border-white/50 backdrop-blur-sm">
-          {icon}
-        </div>
-      </div>
-      {description && (
-        <div className="mt-auto relative z-10 pt-3 border-t border-white/50">
-          <p className="text-xs font-medium text-slate-500 leading-relaxed">
-            {description}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ChartRenderer({ section, fullWidth = false }) {
   const chartTitle = section.title || "Restaurant Visualization";
   const { summary, businessImpact } = section;
   const chart = section.chart || section;
   const { type, labels, data, profitData } = chart;
   
-  const COLORS = ['#f97316', '#fb923c', '#fdba74', '#059669', '#10b981', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#eab308', '#14b8a6'];
+  const COLORS = ['#3525cd', '#4f46e5', '#a44100', '#58579b', '#7b2f00', '#c3c0ff', '#140f54', '#ffb695'];
 
   let chartData = [];
   if (labels && data) {
@@ -450,63 +447,65 @@ function ChartRenderer({ section, fullWidth = false }) {
     return COLORS[index % COLORS.length];
   };
 
-  const chartIcon = type === 'bar' ? <BarChart3 size={18} className="text-orange-500" /> 
-                   : type === 'pie' ? <PieIcon size={18} className="text-violet-500" />
-                   : <LineIcon size={18} className="text-emerald-500" />;
+  const chartIcon = type === 'bar' ? 'bar_chart' : type === 'pie' ? 'pie_chart' : 'show_chart';
 
   return (
-    <div className="bg-white rounded-[2rem] shadow-[0_2px_20px_rgb(0,0,0,0.02)] border border-slate-200/80 hover:border-slate-300 transition-colors flex flex-col overflow-hidden h-full">
+    <div className="bg-surface-container-lowest rounded-[2.5rem] shadow-sm border border-outline-variant/20 hover:border-primary/20 transition-colors flex flex-col overflow-hidden h-full group">
       
-      <div className={`p-7 flex flex-col ${fullWidth ? 'h-[450px]' : 'h-[380px]'}`}>
-        <div className="mb-4 flex items-center gap-2">
-          {chartIcon}
-          <h3 className="text-xl font-bold text-slate-800">{chartTitle}</h3>
+      <div className={`p-8 lg:p-10 flex flex-col ${fullWidth ? 'h-[550px]' : 'h-[480px]'}`}>
+        <div className="mb-8 flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-surface border border-outline-variant/20 flex items-center justify-center text-primary shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">{chartIcon}</span>
+            </div>
+            <h3 className="text-2xl font-extrabold font-headline text-on-surface tracking-tight">{chartTitle}</h3>
+          </div>
         </div>
         
         <div className="flex-1 w-full min-h-0 relative">
           <ResponsiveContainer width="100%" height="100%">
             {type === 'bar' ? (
-              <BarChart data={chartData} margin={{ top: 5, right: 10, left: 20, bottom: 5 }} layout={fullWidth ? "horizontal" : "vertical"}>
-                <CartesianGrid strokeDasharray="3 3" vertical={fullWidth ? false : true} horizontal={fullWidth ? true : false} stroke="#f1f5f9" />
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 20, bottom: 10 }} layout={fullWidth ? "horizontal" : "vertical"}>
+                <CartesianGrid strokeDasharray="3 3" vertical={fullWidth ? false : true} horizontal={fullWidth ? true : false} stroke="#eaf1ff" />
                 {fullWidth ? (
                   <>
-                    <XAxis dataKey="name" tick={{fontSize: 11, fill: '#64748b'}} axisLine={false} tickLine={false} angle={-25} textAnchor="end" height={60} />
-                    <YAxis tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="name" tick={{fontSize: 12, fill: '#777587', fontWeight: 500}} axisLine={false} tickLine={false} angle={-25} textAnchor="end" height={60} />
+                    <YAxis tick={{fontSize: 12, fill: '#777587', fontWeight: 600}} axisLine={false} tickLine={false} />
                   </>
                 ) : (
                   <>
-                    <XAxis type="number" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                    <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                    <XAxis type="number" tick={{fontSize: 12, fill: '#777587', fontWeight: 600}} axisLine={false} tickLine={false} />
+                    <YAxis dataKey="name" type="category" width={120} tick={{fontSize: 12, fill: '#777587', fontWeight: 500}} axisLine={false} tickLine={false} />
                   </>
                 )}
-                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                <Bar dataKey="value" name="Revenue" fill="#f97316" radius={[4, 4, 4, 4]}>
+                <Tooltip cursor={{fill: '#f8f9ff'}} contentStyle={{borderRadius: '16px', border: '1px solid #c7c4d8', boxShadow: '0 20px 40px -10px rgba(11, 28, 48, 0.1)', fontFamily: 'Inter', fontWeight: 600}} />
+                <Bar dataKey="value" name="Revenue" fill="#3525cd" radius={[6, 6, 6, 6]}>
                    {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                    ))}
                 </Bar>
                 {profitData && (
-                  <Bar dataKey="profit" name="Profit" fill="#059669" radius={[4, 4, 4, 4]} />
+                  <Bar dataKey="profit" name="Profit" fill="#a44100" radius={[6, 6, 6, 6]} />
                 )}
-                {profitData && <Legend />}
+                {profitData && <Legend wrapperStyle={{paddingTop: '20px', fontSize: '13px', fontWeight: 600}} />}
               </BarChart>
             ) : type === 'line' ? (
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                <Line type="monotone" dataKey="value" name="Revenue" stroke="#f97316" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 8, fill: '#f97316', stroke: '#fff', strokeWidth: 2 }} />
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eaf1ff" />
+                <XAxis dataKey="name" tick={{fontSize: 12, fill: '#777587', fontWeight: 500}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fontSize: 12, fill: '#777587', fontWeight: 600}} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px -10px rgba(11, 28, 48, 0.1)', fontFamily: 'Inter', fontWeight: 600}} />
+                <Line type="monotone" dataKey="value" name="Revenue" stroke="#3525cd" strokeWidth={5} dot={{ r: 5, strokeWidth: 3, fill: '#fff' }} activeDot={{ r: 9, fill: '#3525cd', stroke: '#fff', strokeWidth: 3 }} />
                 {profitData && (
-                  <Line type="monotone" dataKey="profit" name="Profit" stroke="#059669" strokeWidth={3} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} strokeDasharray="5 5" />
+                  <Line type="monotone" dataKey="profit" name="Profit" stroke="#a44100" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} strokeDasharray="6 6" />
                 )}
-                <Legend />
+                <Legend wrapperStyle={{paddingTop: '20px', fontSize: '13px', fontWeight: 600}} />
               </LineChart>
             ) : type === 'pie' ? (
               <PieChart>
-                <Tooltip contentStyle={{borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                {chartData.length <= 12 && <Legend iconType="circle" wrapperStyle={{fontSize: '12px', paddingTop: '20px'}} />}
-                <Pie data={chartData} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={2} dataKey="value" stroke="none">
+                <Tooltip contentStyle={{borderRadius: '16px', border: '1px solid #c7c4d8', boxShadow: '0 20px 40px -10px rgba(11, 28, 48, 0.1)', fontFamily: 'Inter', fontWeight: 600}} />
+                {chartData.length <= 12 && <Legend iconType="circle" wrapperStyle={{fontSize: '13px', fontWeight: 600, paddingTop: '30px'}} />}
+                <Pie data={chartData} cx="50%" cy="50%" innerRadius={80} outerRadius={125} paddingAngle={3} dataKey="value" stroke="none">
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={getPieColor(entry, index)} />
                   ))}
@@ -519,22 +518,22 @@ function ChartRenderer({ section, fullWidth = false }) {
 
       {/* Business Context */}
       {(summary || businessImpact) && (
-        <div className="bg-slate-50 border-t border-slate-100 p-6 flex flex-col gap-4 mt-auto">
+        <div className="bg-surface border-t border-outline-variant/20 p-8 lg:p-10 flex flex-col gap-6 mt-auto">
            {summary && (
-             <div className="flex gap-3 items-start">
-                <Info size={18} className="text-orange-500 mt-0.5 shrink-0" />
+             <div className="flex gap-4 items-start">
+                <span className="material-symbols-outlined text-tertiary-container mt-0.5 shrink-0 text-xl font-bold">visibility</span>
                 <div>
-                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Observation</h4>
-                   <p className="text-sm font-medium text-slate-700 leading-relaxed">{summary}</p>
+                   <h4 className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">Data Observation</h4>
+                   <p className="text-sm font-semibold text-on-surface leading-relaxed">{summary}</p>
                 </div>
              </div>
            )}
            {businessImpact && (
-             <div className="flex gap-3 items-start">
-                <Zap size={18} className="text-amber-500 mt-0.5 shrink-0" />
+             <div className="flex gap-4 items-start border-t border-outline-variant/10 pt-6">
+                <span className="material-symbols-outlined text-primary mt-0.5 shrink-0 text-xl font-bold">bolt</span>
                 <div>
-                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Recommendation</h4>
-                   <p className="text-sm font-semibold text-slate-800 leading-relaxed">{businessImpact}</p>
+                   <h4 className="text-[10px] font-extrabold text-primary uppercase tracking-widest mb-1.5 flex items-center gap-2">Strategic Impact</h4>
+                   <p className="text-sm font-bold text-on-surface leading-relaxed">{businessImpact}</p>
                 </div>
              </div>
            )}
