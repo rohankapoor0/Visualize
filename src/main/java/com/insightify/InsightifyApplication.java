@@ -11,16 +11,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class InsightifyApplication {
 
     public static void main(String[] args) {
-        io.github.cdimascio.dotenv.Dotenv dotenv = io.github.cdimascio.dotenv.Dotenv.configure()
-                .ignoreIfMissing()
-                .load();
-
-        dotenv.entries().forEach(entry -> {
-            String key = entry.getKey();
-            String value = entry.getValue().trim();
-            System.setProperty(key, value);
-        });
-
         SpringApplication.run(InsightifyApplication.class, args);
     }
 }
